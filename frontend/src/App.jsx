@@ -607,7 +607,118 @@ export default function App() {
       </aside>
 
       {/* MAIN PAGE VIEW CONTENT */}
-      
+      <main className="main-viewport">
+
+        {/*TAB 1: COORDINATE MAP VIEW*/}
+        {activeTab === 'dashboard_map' && (
+          <div className="viewport-layout map-view-tab">
+            <div className="panel-header">
+              <div>
+                <h1>City Coordinate Grid</h1>
+                <p>Topological interactive vector matrix. Pulsating highlights show active safety overrides. Click Map to grab coordinate nodes</p>
+              </div>
+              <div className="map-toolbar">
+                <button className="control-btn" onClick={()=>handleMapZoom(0.25)} title="Zoom In">+</button>
+                <button className="control-btn" onClick={()=> handleMapZoom(-0.25)} title="Zoom Out">-</button>
+                <button className="control-btn" onClick={()=> handleMapReset} title="Reset Scale">↺</button>
+                <span className="zoom-indicator">{Math.round(mapScale*100)}%</span>
+              </div>
+            </div>
+
+            <div className="map-canvas-container">
+              {/*Vector Canvas */}
+              <svg
+              ref={mapSvgRef}
+              className={`map-svg-grid ${isDraggingMap ? 'dragging' : ''}`}
+              viewBox= {`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+              onMouseDown={handleMapMouseDown}
+              onMouseMove={handleMapMouseMove}
+              onMouseUp={handleMapMouseUpOrLeave}
+              onMouseLeave={handleMapMouseUpOrLeave}
+              onClick={handleMapClick}
+              >
+                {/*scale and pan wrapper */}
+                <g transform={`translate(${MAP_WIDTH / 2 + mapOffset.x}, ${MAP_HEIGHT / 2 + mapOffset.y}) scale(${mapScale}) translate(${-MAP_WIDTH / 2}, ${-MAP_HEIGHT / 2})`}>
+                 
+                 {/*Backrgound gridlines */}
+                 <defs>
+                  <pattern id="grid" width="40" height="40" patternUnits="useSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1"/>
+                  </pattern>
+                 </defs>
+                 <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#grid)" />
+
+                 {/* rive mock */}
+                 <path
+                 d="M -50,450 Q 200,380 400,280 T 850, 220"
+                 fill="none"
+                 stroke="rgba(6,182,212,0.15)"
+                 strokeWidth="48"
+                 strokeLinecap="round"
+                 />
+                 <text x="250" y="325" fill="rgba(6, 182, 212, 0.3)" fontSize="12" fontWeight="bold" transform="rotate(-15, 250, 325)">METROPOLIS RIVER</text>
+
+                  {/* Municipal Park Mock */}
+                  <rect x="350" y="60" width="160" height="110" rx="10" fill="rgba(34, 197, 94, 0.08)" stroke="rgba(34, 197, 94, 0.15)" strokeWidth="2" />
+                  <text x="430" y="115" fill="rgba(34, 197, 94, 0.3)" fontSize="10" textAnchor="middle" fontWeight="bold">CENTRAL PARKWAY</text>
+
+                  {/* Major Expressways */}
+                  <line x1="100" y1="0" x2="100" y2="500" stroke="rgba(148, 163, 184, 0.06)" strokeWidth="8" />
+                  <line x1="0" y1="200" x2="800" y2="200" stroke="rgba(148, 163, 184, 0.06)" strokeWidth="8" />
+
+                  {/*Plot Active Incident Marker */}
+                  {filteredReports.map((report) => {
+                    const {x,y} = projectCoords(report.latitude, report.longitude);
+                    const isHigh = report.category_detail?.priority === 'High' || report.automated_priority_override;
+                    const isMedium = report.category_detail?.priority === 'Medium';
+                    const color = getPriorityColor(report.category_detail?.priority, report.automated_priority_override);
+                    const isSelected = selectedReport && selectedReport.id === report.id;
+
+                    return (
+                      <g
+                      key={report.id}
+                      className={`map-marker-group ${isSelected ? 'selected': ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedReport(report);
+                      }}
+                      >
+                        {/*High priority glowing concentric pulses */}
+                        {isHigh && (
+                          <>
+                          <circle cx={x} cy={y} r="16" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-outer" />
+                          <circle cx={x} cy={y} r="10" fil="none" stroke={color} strokeWidth="2" className="marker-pulse-inner" />
+                          </>
+                        )}
+
+                        {/*Manual Click Coordinates Grab Marker */}
+                        {mapPlacementCoords && (() => {
+                          const projected = projectCoords(mapPlacementCoords.lat, mapPlacementCoords.lon);
+                          return (
+                            <g>
+                              <path
+                              d={`M ${projected.x} ${projected.y - 2}
+                                  L ${projected.x -6} ${projected.y -16}
+                                  A 6 6 0 1 1 ${projected.x+6} ${projected.y - 16} z`}
+                              fill="var(--accent-cyan)"
+                              stroke="#0f172a"
+                              strokeWidth="1.5"
+                              className="placement-pin-glow"
+                              />
+
+                              <circle
+                               cx={projected.x}
+                               cy=
+                          )
+                        })}
+                      </g>
+                    )
+                  })}
+              </svg>
+            </div>
+          </div>
+        )}
+      </main>
 
     )
 }
