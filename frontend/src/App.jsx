@@ -606,7 +606,23 @@ export default function App() {
         </div>
       </aside>
 
-      {/* MAIN PAGE VIEW CONTENT */}
+      
+Viewed App.jsx:863-915
+
+Here are the errors identified in your new code snippet:
+
+1. **Severe Nesting Misalignment**:
+   The **Chronological Timeline** and **Administrative Transition Block** were placed outside of the `selectedReport && (...)` wrapper and after the `activeTab === 'dashboard_map'` check was already closed. This caused dangling closing tags (`</div> </div> )}`) at the end of your snippet and would crash the application when no report is selected (since it attempts to access `selectedReport.history_logs` on a `null` object). They must be placed inside the `<div className="drawer-scroll-body">` element.
+
+2. **Typo in Class Name**: 
+   - `node=date` has an equals sign (`=`) instead of a hyphen. It has been corrected to `node-date`.
+
+---
+
+### Fixed Code:
+
+```jsx
+{/* MAIN PAGE VIEW CONTENT */}
       <main className="main-viewport">
 
         {/*TAB 1: COORDINATE MAP VIEW*/}
@@ -620,7 +636,7 @@ export default function App() {
               <div className="map-toolbar">
                 <button className="control-btn" onClick={()=>handleMapZoom(0.25)} title="Zoom In">+</button>
                 <button className="control-btn" onClick={()=> handleMapZoom(-0.25)} title="Zoom Out">-</button>
-                <button className="control-btn" onClick={()=> handleMapReset} title="Reset Scale">↺</button>
+                <button className="control-btn" onClick={handleMapReset} title="Reset Scale">↺</button>
                 <span className="zoom-indicator">{Math.round(mapScale*100)}%</span>
               </div>
             </div>
@@ -687,34 +703,203 @@ export default function App() {
                         {isHigh && (
                           <>
                           <circle cx={x} cy={y} r="16" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-outer" />
-                          <circle cx={x} cy={y} r="10" fil="none" stroke={color} strokeWidth="2" className="marker-pulse-inner" />
+                          <circle cx={x} cy={y} r="10" fill="none" stroke={color} strokeWidth="2" className="marker-pulse-inner" />
                           </>
                         )}
-
-                        {/*Manual Click Coordinates Grab Marker */}
-                        {mapPlacementCoords && (() => {
-                          const projected = projectCoords(mapPlacementCoords.lat, mapPlacementCoords.lon);
-                          return (
-                            <g>
-                              <path
-                              d={`M ${projected.x} ${projected.y - 2}
-                                  L ${projected.x -6} ${projected.y -16}
-                                  A 6 6 0 1 1 ${projected.x+6} ${projected.y - 16} z`}
-                              fill="var(--accent-cyan)"
-                              stroke="#0f172a"
-                              strokeWidth="1.5"
-                              className="placement-pin-glow"
-                              />
-
-                              <circle
-                               cx={projected.x}
-                               cy=
-                          )
-                        })}
                       </g>
                     )
                   })}
-              </svg>
+
+                  {/*Manual Click Coordinates Grab Marker */}
+                  {mapPlacementCoords && (() => {
+                    const projected = projectCoords(mapPlacementCoords.lat, mapPlacementCoords.lon);
+                    return (
+                      <g>
+                        <path
+                        d={`M ${projected.x} ${projected.y - 2}
+                            L ${projected.x -6} ${projected.y -16}
+                            A 6 6 0 1 1 ${projected.x+6} ${projected.y - 16} z`}
+                        fill="var(--accent-cyan)"
+                        stroke="#0f172a"
+                        strokeWidth="1.5"
+                        className="placement-pin-glow"
+                        />
+
+                        <circle
+                         cx={projected.x}
+                         cy={projected.y - 16}
+                         r="2.5"
+                         fill="#0f172a"
+                         />
+                        </g>
+                    );
+                  })()}
+              </g>
+            </svg>
+
+            {/* Side drawer details*/}
+            {selectedReport && (
+              <div className="map-side-drawer-overlay">
+                <div className="drawer-header">
+                  <div>
+                    <span className="drawer-ticket-tag">{selectedReport.ticket_number}</span>
+                    <h2 className="drawer-title">{selectedReport.title}</h2>
+                  </div>
+                  <button className="drawer-close-btn" onClick={()=> setSelectedReport(null)}></button>
+                </div>
+
+                <div className="drawer-scroll-body">
+                  {/*Status progress bar */}
+                  <div className="drawer-status-bar">
+                    <div
+                    className="status-badge"
+                    style={{ backgroundColor: `${getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override)}20`, color: getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override) }}
+                    >
+                      {selectedReport.category_detail?.priority} Priority
+                    </div>
+                    {selectedReport.automated_priority_override && (
+                      <span className="ai-override-pill">Ai Elevated</span>
+                    )}
+                    <span className="status-string">State: <strong>{selectedReport.status_display}</strong></span>
+                  </div>
+
+                  <div className="drawer-meta-grid">
+                    <div className="meta-box">
+                      <span>Classification</span>
+                      <strong>{selectedReport.category_detail?.name}</strong>
+                    </div>
+                    <div className="meta-box">
+                      <span>Assignment Team</span>
+                      <strong>{selectedReport.category_detail?.assignment_group}</strong>
+                    </div>
+                    <div className="meta-box">
+                      <span>Grid Location</span>
+                      <strong>{selectedReport.latitude}, {selectedReport.longitude}</strong>
+                    </div>
+                    <div className="meta-box">
+                      <span>Upvotes</span>
+                      <div className="drawer-upvote-counter">
+                        <strong>{selectedReport.upvote_count}</strong>
+                        <button
+                        className="inline-upvote-trigger"
+                        onClick={() => handleUpvote(selectedReport.id)}
+                        disabled={['Resolved','Rejected'].includes(selectedReport.status)}
+                        >
+                          Upvote
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="drawer-description-box">
+                    <h4>Citizen Summary Details</h4>
+                    <p>{selectedReport.description}</p>
+                  </div>
+
+                  {/*Media Attachments */}
+                  {selectedReport.media_attachments?.length > 0 && (
+                    <div className="drawer-media-section">
+                      <h4>Captured Evidence Photos ({selectedReport.media_attachments.length})</h4>
+                      <div className="carousel-track">
+                        {selectedReport.media_attachments.map((img) => (
+                          <div key={img.id} className="carousel-slide-card">
+                            <img src={img.absolute_url || img.file_path} alt="Incident Evidence" />
+                            <span className="slide-meta"> {(img.file_size / 1024).toFixed(1)}KB</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/*Chronological Timeline */}
+                  <div className="drawer-timeline-section">
+                    <h4>Chronological Remediator Audit Trail</h4>
+                    <div className="timeline-tree">
+                      {selectedReport.history_logs?.map((log,idx) => (
+                        <div key={log.id || idx} className="timeline-node">
+                          <div className="timeline-node-dot"></div>
+                          <div className="timeline-node-content">
+                            <div className="timeline-node-header">
+                              <span className="node-transition">{log.previous_status_display} - {log.new_status_display}</span>
+                              <span className="node-date">{new Date(log.created_at).toLocaleString()}</span>
+                            </div>
+                            <p className="node-comment">"{log.comment}"</p>
+                            {log.administrative_notes && (
+                              <div className="node-admin-notes">
+                                <span>Internal Audit Note:</span> {log.administrative_notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Administrative transition block */}
+                  <div className="drawer-admin-section">
+                    <h4>Administrative Remediation controls</h4>
+                    <form onSubmit={handleStatusTransition} className="admin-status-form">
+                      <div className="form-group-row">
+                        <div className="form-element">
+                          <label>Transition State</label>
+                          <select
+                          value={adminTransition.status}
+                          onChange={(e) => setAdminTransition(prev => ({...prev, status:e.target.value}))}
+                          >
+                            <option value="">Shift Status</option>
+                            <option value="Open">Open</option>
+                            <option value="Investigating">Investigate</option>
+                            <option value="Scheduled">Schedule Work</option>
+                            <option value="In Progress">Start Work</option>
+                            <option value="Resolved">Mark Resolved</option>
+                            <option value="Rejected">Reject Ticket</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="form-element">
+                        <label>Public Remediator Comment</label>
+                        <textarea
+                        rows="2"
+                        placeholder="Add Progress details visible to citizens"
+                        value={adminTransition.comment}
+                        onChange={(e)=>setAdminTransition(prev=>({...prev,comment: e.target.value}))}
+                        />
+                      </div>
+                      <div className="form-element">
+                        <label>Internal Administrative Notes</label>
+                        <input
+                        type="text"
+                        placeholder="Secure database internal audit logs"
+                        value={adminTransition.administrative_notes}
+                        onChange={(e) => setAdminTransition(prev => ({...prev, administrative_notes: e.target.value}))}
+                        />
+                      </div>
+                      <button type="submit" className="admin-submit-btn">Commit State Transition</button>
+
+                      {adminMessage && (
+                        <div className={`admin-form-alert alert-${adminMessage.type}`}>
+                          {adminMessage.text}
+                        </div>
+                      )}
+                    </form>
+                  </div>
+
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+        )}
+
+        {/*TAB 2: TICKET EXPLORER*/}
+        {activeTab === 'ticket_explorer' && (
+          <div className="viewport-layout explorer-view-tab">
+            <div className="panel-header">
+              <div>
+                <h1>Municipal Ticket Explorer</h1>
+                <p>Audit and check real-time issues submitted across assignment groups. Use filters to narrow geographical scopes</p>
+              </div>
             </div>
           </div>
         )}
