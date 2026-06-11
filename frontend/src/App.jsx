@@ -546,7 +546,7 @@ export default function App() {
           onClick={()=>{setActiveTab('dashboard_map'); setSelectedReport(null);}}
           >
 
-            <span className="nav-icon">🗺</span>
+            <span className="nav-icon"></span>
             <span className="nav-label">Coordinate Map</span>
           </button>
           <button
@@ -563,7 +563,8 @@ export default function App() {
           >
 
             <span className="nav-icon"></span>
-            <span className="nav-label"></span>
+            <span className="nav-label">Submit Ticket</span>
+
             
           </button>
           <button
