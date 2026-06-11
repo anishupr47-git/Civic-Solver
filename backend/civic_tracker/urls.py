@@ -22,7 +22,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('reports.urls')),
+    path('', include('reports.urls')),  # Fallback for cPanel subdirectory /api mount
 ]
+
 
 #Append static and media file routing for local development
 if settings.DEBUG:

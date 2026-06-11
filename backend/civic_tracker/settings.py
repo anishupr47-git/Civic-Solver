@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-yrx9by4+q(q97)k=7$tr70*o!uq1474*8f5tdaotsojb+@%l+y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,localhost:8000').split(',')
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,localhost:8000,civic-solver.com,www.civic-solver.com,uprlabs.com,www.uprlabs.com,civic-solver.com.uprlabs.com').split(',')
+
 
 
 
