@@ -1,4 +1,4 @@
-import React, {useState,useEffect,useRef} from "react";
+import React, {useState,useEffect,useRef, act} from "react";
 import './APP.css';
 
 //Projection constants for scaling Lay/lon coordinates into SVG Viewports
@@ -606,23 +606,7 @@ export default function App() {
         </div>
       </aside>
 
-      
-Viewed App.jsx:863-915
-
-Here are the errors identified in your new code snippet:
-
-1. **Severe Nesting Misalignment**:
-   The **Chronological Timeline** and **Administrative Transition Block** were placed outside of the `selectedReport && (...)` wrapper and after the `activeTab === 'dashboard_map'` check was already closed. This caused dangling closing tags (`</div> </div> )}`) at the end of your snippet and would crash the application when no report is selected (since it attempts to access `selectedReport.history_logs` on a `null` object). They must be placed inside the `<div className="drawer-scroll-body">` element.
-
-2. **Typo in Class Name**: 
-   - `node=date` has an equals sign (`=`) instead of a hyphen. It has been corrected to `node-date`.
-
----
-
-### Fixed Code:
-
-```jsx
-{/* MAIN PAGE VIEW CONTENT */}
+      {/* MAIN PAGE VIEW CONTENT */}
       <main className="main-viewport">
 
         {/*TAB 1: COORDINATE MAP VIEW*/}
@@ -634,45 +618,45 @@ Here are the errors identified in your new code snippet:
                 <p>Topological interactive vector matrix. Pulsating highlights show active safety overrides. Click Map to grab coordinate nodes</p>
               </div>
               <div className="map-toolbar">
-                <button className="control-btn" onClick={()=>handleMapZoom(0.25)} title="Zoom In">+</button>
-                <button className="control-btn" onClick={()=> handleMapZoom(-0.25)} title="Zoom Out">-</button>
+                <button className="control-btn" onClick={() => handleMapZoom(0.25)} title="Zoom In">+</button>
+                <button className="control-btn" onClick={() => handleMapZoom(-0.25)} title="Zoom Out">-</button>
                 <button className="control-btn" onClick={handleMapReset} title="Reset Scale">↺</button>
-                <span className="zoom-indicator">{Math.round(mapScale*100)}%</span>
+                <span className="zoom-indicator">{Math.round(mapScale * 100)}%</span>
               </div>
             </div>
 
             <div className="map-canvas-container">
               {/*Vector Canvas */}
               <svg
-              ref={mapSvgRef}
-              className={`map-svg-grid ${isDraggingMap ? 'dragging' : ''}`}
-              viewBox= {`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-              onMouseDown={handleMapMouseDown}
-              onMouseMove={handleMapMouseMove}
-              onMouseUp={handleMapMouseUpOrLeave}
-              onMouseLeave={handleMapMouseUpOrLeave}
-              onClick={handleMapClick}
+                ref={mapSvgRef}
+                className={`map-svg-grid ${isDraggingMap ? 'dragging' : ''}`}
+                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                onMouseDown={handleMapMouseDown}
+                onMouseMove={handleMapMouseMove}
+                onMouseUp={handleMapMouseUpOrLeave}
+                onMouseLeave={handleMapMouseUpOrLeave}
+                onClick={handleMapClick}
               >
                 {/*scale and pan wrapper */}
                 <g transform={`translate(${MAP_WIDTH / 2 + mapOffset.x}, ${MAP_HEIGHT / 2 + mapOffset.y}) scale(${mapScale}) translate(${-MAP_WIDTH / 2}, ${-MAP_HEIGHT / 2})`}>
-                 
-                 {/*Backrgound gridlines */}
-                 <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="useSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1"/>
-                  </pattern>
-                 </defs>
-                 <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#grid)" />
 
-                 {/* rive mock */}
-                 <path
-                 d="M -50,450 Q 200,380 400,280 T 850, 220"
-                 fill="none"
-                 stroke="rgba(6,182,212,0.15)"
-                 strokeWidth="48"
-                 strokeLinecap="round"
-                 />
-                 <text x="250" y="325" fill="rgba(6, 182, 212, 0.3)" fontSize="12" fontWeight="bold" transform="rotate(-15, 250, 325)">METROPOLIS RIVER</text>
+                  {/*Background gridlines */}
+                  <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="useSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1" />
+                    </pattern>
+                  </defs>
+                  <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#grid)" />
+
+                  {/* river mock */}
+                  <path
+                    d="M -50,450 Q 200,380 400,280 T 850, 220"
+                    fill="none"
+                    stroke="rgba(6,182,212,0.15)"
+                    strokeWidth="48"
+                    strokeLinecap="round"
+                  />
+                  <text x="250" y="325" fill="rgba(6, 182, 212, 0.3)" fontSize="12" fontWeight="bold" transform="rotate(-15, 250, 325)">METROPOLIS RIVER</text>
 
                   {/* Municipal Park Mock */}
                   <rect x="350" y="60" width="160" height="110" rx="10" fill="rgba(34, 197, 94, 0.08)" stroke="rgba(34, 197, 94, 0.15)" strokeWidth="2" />
@@ -684,7 +668,7 @@ Here are the errors identified in your new code snippet:
 
                   {/*Plot Active Incident Marker */}
                   {filteredReports.map((report) => {
-                    const {x,y} = projectCoords(report.latitude, report.longitude);
+                    const { x, y } = projectCoords(report.latitude, report.longitude);
                     const isHigh = report.category_detail?.priority === 'High' || report.automated_priority_override;
                     const isMedium = report.category_detail?.priority === 'Medium';
                     const color = getPriorityColor(report.category_detail?.priority, report.automated_priority_override);
@@ -692,20 +676,41 @@ Here are the errors identified in your new code snippet:
 
                     return (
                       <g
-                      key={report.id}
-                      className={`map-marker-group ${isSelected ? 'selected': ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedReport(report);
-                      }}
+                        key={report.id}
+                        className={`map-marker-group ${isSelected ? 'selected' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReport(report);
+                        }}
                       >
                         {/*High priority glowing concentric pulses */}
                         {isHigh && (
                           <>
-                          <circle cx={x} cy={y} r="16" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-outer" />
-                          <circle cx={x} cy={y} r="10" fill="none" stroke={color} strokeWidth="2" className="marker-pulse-inner" />
+                            <circle cx={x} cy={y} r="16" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-outer" />
+                            <circle cx={x} cy={y} r="10" fill="none" stroke={color} strokeWidth="2" className="marker-pulse-inner" />
                           </>
                         )}
+
+                        {/*Medium priority subtle pulse */}
+                        {isMedium && (
+                          <circle cx={x} cy={y} r="11" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-inner" />
+                        )}
+
+                        {/*Solid Anchor Point */}
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={isSelected ? "7" : "5.5"}
+                          fill={color}
+                          stroke="#0f172a"
+                          strokeWidth="2"
+                          className="marker-core"
+                        />
+
+                        {/*Subtle Text Tag */}
+                        <text x={x} y={y - 12} fill="#94a3b8" fontSize="8" textAnchor="middle" className="marker-tag">
+                          {report.ticket_number}
+                        </text>
                       </g>
                     )
                   })}
@@ -716,178 +721,178 @@ Here are the errors identified in your new code snippet:
                     return (
                       <g>
                         <path
-                        d={`M ${projected.x} ${projected.y - 2}
+                          d={`M ${projected.x} ${projected.y - 2}
                             L ${projected.x -6} ${projected.y -16}
                             A 6 6 0 1 1 ${projected.x+6} ${projected.y - 16} z`}
-                        fill="var(--accent-cyan)"
-                        stroke="#0f172a"
-                        strokeWidth="1.5"
-                        className="placement-pin-glow"
+                          fill="var(--accent-cyan)"
+                          stroke="#0f172a"
+                          strokeWidth="1.5"
+                          className="placement-pin-glow"
                         />
 
                         <circle
-                         cx={projected.x}
-                         cy={projected.y - 16}
-                         r="2.5"
-                         fill="#0f172a"
-                         />
-                        </g>
+                          cx={projected.x}
+                          cy={projected.y - 16}
+                          r="2.5"
+                          fill="#0f172a"
+                        />
+                      </g>
                     );
                   })()}
-              </g>
-            </svg>
+                </g>
+              </svg>
 
-            {/* Side drawer details*/}
-            {selectedReport && (
-              <div className="map-side-drawer-overlay">
-                <div className="drawer-header">
-                  <div>
-                    <span className="drawer-ticket-tag">{selectedReport.ticket_number}</span>
-                    <h2 className="drawer-title">{selectedReport.title}</h2>
-                  </div>
-                  <button className="drawer-close-btn" onClick={()=> setSelectedReport(null)}></button>
-                </div>
-
-                <div className="drawer-scroll-body">
-                  {/*Status progress bar */}
-                  <div className="drawer-status-bar">
-                    <div
-                    className="status-badge"
-                    style={{ backgroundColor: `${getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override)}20`, color: getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override) }}
-                    >
-                      {selectedReport.category_detail?.priority} Priority
+              {/* Side drawer details*/}
+              {selectedReport && (
+                <div className="map-side-drawer-overlay">
+                  <div className="drawer-header">
+                    <div>
+                      <span className="drawer-ticket-tag">{selectedReport.ticket_number}</span>
+                      <h2 className="drawer-title">{selectedReport.title}</h2>
                     </div>
-                    {selectedReport.automated_priority_override && (
-                      <span className="ai-override-pill">Ai Elevated</span>
-                    )}
-                    <span className="status-string">State: <strong>{selectedReport.status_display}</strong></span>
+                    <button className="drawer-close-btn" onClick={() => setSelectedReport(null)}>×</button>
                   </div>
 
-                  <div className="drawer-meta-grid">
-                    <div className="meta-box">
-                      <span>Classification</span>
-                      <strong>{selectedReport.category_detail?.name}</strong>
+                  <div className="drawer-scroll-body">
+                    {/*Status progress bar */}
+                    <div className="drawer-status-bar">
+                      <div
+                        className="status-badge"
+                        style={{ backgroundColor: `${getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override)}20`, color: getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override) }}
+                      >
+                        {selectedReport.category_detail?.priority} Priority
+                      </div>
+                      {selectedReport.automated_priority_override && (
+                        <span className="ai-override-pill">Ai Elevated</span>
+                      )}
+                      <span className="status-string">State: <strong>{selectedReport.status_display}</strong></span>
                     </div>
-                    <div className="meta-box">
-                      <span>Assignment Team</span>
-                      <strong>{selectedReport.category_detail?.assignment_group}</strong>
-                    </div>
-                    <div className="meta-box">
-                      <span>Grid Location</span>
-                      <strong>{selectedReport.latitude}, {selectedReport.longitude}</strong>
-                    </div>
-                    <div className="meta-box">
-                      <span>Upvotes</span>
-                      <div className="drawer-upvote-counter">
-                        <strong>{selectedReport.upvote_count}</strong>
-                        <button
-                        className="inline-upvote-trigger"
-                        onClick={() => handleUpvote(selectedReport.id)}
-                        disabled={['Resolved','Rejected'].includes(selectedReport.status)}
-                        >
-                          Upvote
-                        </button>
+
+                    <div className="drawer-meta-grid">
+                      <div className="meta-box">
+                        <span>Classification</span>
+                        <strong>{selectedReport.category_detail?.name}</strong>
+                      </div>
+                      <div className="meta-box">
+                        <span>Assignment Team</span>
+                        <strong>{selectedReport.category_detail?.assignment_group}</strong>
+                      </div>
+                      <div className="meta-box">
+                        <span>Grid Location</span>
+                        <strong>{selectedReport.latitude}, {selectedReport.longitude}</strong>
+                      </div>
+                      <div className="meta-box">
+                        <span>Upvotes</span>
+                        <div className="drawer-upvote-counter">
+                          <strong>{selectedReport.upvote_count}</strong>
+                          <button
+                            className="inline-upvote-trigger"
+                            onClick={() => handleUpvote(selectedReport.id)}
+                            disabled={['Resolved', 'Rejected'].includes(selectedReport.status)}
+                          >
+                            ▲ Upvote
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="drawer-description-box">
-                    <h4>Citizen Summary Details</h4>
-                    <p>{selectedReport.description}</p>
-                  </div>
+                    <div className="drawer-description-box">
+                      <h4>Citizen Summary Details</h4>
+                      <p>{selectedReport.description}</p>
+                    </div>
 
-                  {/*Media Attachments */}
-                  {selectedReport.media_attachments?.length > 0 && (
-                    <div className="drawer-media-section">
-                      <h4>Captured Evidence Photos ({selectedReport.media_attachments.length})</h4>
-                      <div className="carousel-track">
-                        {selectedReport.media_attachments.map((img) => (
-                          <div key={img.id} className="carousel-slide-card">
-                            <img src={img.absolute_url || img.file_path} alt="Incident Evidence" />
-                            <span className="slide-meta"> {(img.file_size / 1024).toFixed(1)}KB</span>
+                    {/*Media Attachments */}
+                    {selectedReport.media_attachments?.length > 0 && (
+                      <div className="drawer-media-section">
+                        <h4>Captured Evidence Photos ({selectedReport.media_attachments.length})</h4>
+                        <div className="carousel-track">
+                          {selectedReport.media_attachments.map((img) => (
+                            <div key={img.id} className="carousel-slide-card">
+                              <img src={img.absolute_url || img.file_path} alt="Incident Evidence" />
+                              <span className="slide-meta"> {(img.file_size / 1024).toFixed(1)}KB</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/*Chronological Timeline */}
+                    <div className="drawer-timeline-section">
+                      <h4>Chronological Remediator Audit Trail</h4>
+                      <div className="timeline-tree">
+                        {selectedReport.history_logs?.map((log, idx) => (
+                          <div key={log.id || idx} className="timeline-node">
+                            <div className="timeline-node-dot"></div>
+                            <div className="timeline-node-content">
+                              <div className="timeline-node-header">
+                                <span className="node-transition">{log.previous_status_display} - {log.new_status_display}</span>
+                                <span className="node-date">{new Date(log.created_at).toLocaleString()}</span>
+                              </div>
+                              <p className="node-comment">"{log.comment}"</p>
+                              {log.administrative_notes && (
+                                <div className="node-admin-notes">
+                                  <span>Internal Audit Note:</span> {log.administrative_notes}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
 
-                  {/*Chronological Timeline */}
-                  <div className="drawer-timeline-section">
-                    <h4>Chronological Remediator Audit Trail</h4>
-                    <div className="timeline-tree">
-                      {selectedReport.history_logs?.map((log,idx) => (
-                        <div key={log.id || idx} className="timeline-node">
-                          <div className="timeline-node-dot"></div>
-                          <div className="timeline-node-content">
-                            <div className="timeline-node-header">
-                              <span className="node-transition">{log.previous_status_display} - {log.new_status_display}</span>
-                              <span className="node-date">{new Date(log.created_at).toLocaleString()}</span>
-                            </div>
-                            <p className="node-comment">"{log.comment}"</p>
-                            {log.administrative_notes && (
-                              <div className="node-admin-notes">
-                                <span>Internal Audit Note:</span> {log.administrative_notes}
-                              </div>
-                            )}
+                    {/* Administrative transition block */}
+                    <div className="drawer-admin-section">
+                      <h4>Administrative Remediation controls</h4>
+                      <form onSubmit={handleStatusTransition} className="admin-status-form">
+                        <div className="form-group-row">
+                          <div className="form-element">
+                            <label>Transition State</label>
+                            <select
+                              value={adminTransition.status}
+                              onChange={(e) => setAdminTransition(prev => ({ ...prev, status: e.target.value }))}
+                            >
+                              <option value="">Shift Status</option>
+                              <option value="Open">Open</option>
+                              <option value="Investigating">Investigate</option>
+                              <option value="Scheduled">Schedule Work</option>
+                              <option value="In Progress">Start Work</option>
+                              <option value="Resolved">Mark Resolved</option>
+                              <option value="Rejected">Reject Ticket</option>
+                            </select>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Administrative transition block */}
-                  <div className="drawer-admin-section">
-                    <h4>Administrative Remediation controls</h4>
-                    <form onSubmit={handleStatusTransition} className="admin-status-form">
-                      <div className="form-group-row">
                         <div className="form-element">
-                          <label>Transition State</label>
-                          <select
-                          value={adminTransition.status}
-                          onChange={(e) => setAdminTransition(prev => ({...prev, status:e.target.value}))}
-                          >
-                            <option value="">Shift Status</option>
-                            <option value="Open">Open</option>
-                            <option value="Investigating">Investigate</option>
-                            <option value="Scheduled">Schedule Work</option>
-                            <option value="In Progress">Start Work</option>
-                            <option value="Resolved">Mark Resolved</option>
-                            <option value="Rejected">Reject Ticket</option>
-                          </select>
+                          <label>Public Remediator Comment</label>
+                          <textarea
+                            rows="2"
+                            placeholder="Add Progress details visible to citizens"
+                            value={adminTransition.comment}
+                            onChange={(e) => setAdminTransition(prev => ({ ...prev, comment: e.target.value }))}
+                          />
                         </div>
-                      </div>
-
-                      <div className="form-element">
-                        <label>Public Remediator Comment</label>
-                        <textarea
-                        rows="2"
-                        placeholder="Add Progress details visible to citizens"
-                        value={adminTransition.comment}
-                        onChange={(e)=>setAdminTransition(prev=>({...prev,comment: e.target.value}))}
-                        />
-                      </div>
-                      <div className="form-element">
-                        <label>Internal Administrative Notes</label>
-                        <input
-                        type="text"
-                        placeholder="Secure database internal audit logs"
-                        value={adminTransition.administrative_notes}
-                        onChange={(e) => setAdminTransition(prev => ({...prev, administrative_notes: e.target.value}))}
-                        />
-                      </div>
-                      <button type="submit" className="admin-submit-btn">Commit State Transition</button>
-
-                      {adminMessage && (
-                        <div className={`admin-form-alert alert-${adminMessage.type}`}>
-                          {adminMessage.text}
+                        <div className="form-element">
+                          <label>Internal Administrative Notes</label>
+                          <input
+                            type="text"
+                            placeholder="Secure database internal audit logs"
+                            value={adminTransition.administrative_notes}
+                            onChange={(e) => setAdminTransition(prev => ({ ...prev, administrative_notes: e.target.value }))}
+                          />
                         </div>
-                      )}
-                    </form>
+                        <button type="submit" className="admin-submit-btn">Commit State Transition</button>
+
+                        {adminMessage && (
+                          <div className={`admin-form-alert alert-${adminMessage.type}`}>
+                            {adminMessage.text}
+                          </div>
+                        )}
+                      </form>
+                    </div>
+
                   </div>
-
                 </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
         )}
@@ -901,9 +906,351 @@ Here are the errors identified in your new code snippet:
                 <p>Audit and check real-time issues submitted across assignment groups. Use filters to narrow geographical scopes</p>
               </div>
             </div>
+
+            <div className="explorer-grid-layout">
+              {/*Left column*/}
+              <aside className="explorer-filters-panel">
+                <div className="filter-panel-header">
+                  <h3>SEARCH & FILTER</h3>
+                  <button className="reset-filter-btn" onClick={resetFilters}>Clear All</button>
+                </div>
+
+                <div className="filter-section">
+                  <label className="filter-label">Title/Description Search</label>
+                  <input
+                    type="text"
+                    placeholder="Enter keywords or ticket numbers..."
+                    className="filter-input-search"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                <div className="filter-section">
+                  <label className="filter-label">Civic Classification Category</label>
+                  <select
+                    className="filter-select"
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                  >
+
+                    <option value="">All Classification</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.system_slug}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="filter-section">
+                  <label className="filter-label">Responsible Agency</label>
+                  <select
+                    className="filter-select"
+                    value={filters.agency}
+                    onChange={(e) => handleFilterChange('agency', e.target.value)}
+                  >
+
+                    <option value="">All Departments</option>
+                    <option value="Public Works">Public Works</option>
+                    <option value="Animal Control">Animal Control</option>
+                    <option value="Traffic Safety">Traffic Safety</option>
+                    <option value="Sanitation">Sanitation</option>
+                  </select>
+                </div>
+
+                <div className="filter-section">
+                  <label className="filter-label">Emergency Urgency Tier</label>
+                  <select
+                    className="filter-select"
+                    value={filters.priority}
+                    onChange={(e) => handleFilterChange('priority', e.target.value)}
+                  >
+
+                    <option value="">All Urgencies</option>
+                    <option value="High">High Urgencies</option>
+                    <option value="Medium">Medium Urgencies</option>
+                    <option value="Low">Low Urgencies</option>
+                  </select>
+                </div>
+
+                <div className="filter-section">
+                  <label className="filter-label">Remediation Statuses</label>
+                  <div className="filter-checkbox-group">
+                    {['Open', 'Investigating', 'Scheduled', 'In Progress', 'Resolved', 'Rejected'].map((stat) => (
+                      <label key={stat} className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={filters.status.includes(stat)}
+                          onChange={() => handleFilterChange('status', stat)}
+                        />
+                        <span>{stat}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+
+              {/*Right column grid dashboard */}
+              <section className="explorer-results-dashboard">
+                <div className="results-metrics-bar">
+                  <span>Showing <strong>{filteredReports.length}</strong>matching tickets out of <strong>{reports.length}</strong></span>
+                </div>
+
+                {filteredReports.length === 0 ? (
+                  <div className="results-empty-state">
+                    <span className="empty-icon"></span>
+                    <h3>No matching reports registered</h3>
+                    <p>Try modifying active text queries, clearing categories, or toggling check boxes</p>
+                  </div>
+                ) : (
+                  <div className="explorer-cards-grid">
+                    {filteredReports.map((report) => {
+                      const color = getPriorityColor(report.category_detail?.priority, report.automated_priority_override);
+                      return (
+                        <div
+                          key={report.id}
+                          className="explorer-card"
+                          onClick={() => {
+                            setSelectedReport(report);
+                            setActiveTab('dashboard_map');
+                          }}
+                        >
+                          <div className="card-header">
+                            <span className="card-ticket-tag">{report.ticket_number}</span>
+                            <div
+                              className="card-priority-badge"
+                              style={{ backgroundColor: `${color}15`, color: color, borderColor: `${color}30` }}
+                            >
+                              {report.category_detail?.priority}
+                            </div>
+                          </div>
+
+                          <h3 className="card-title">{report.title}</h3>
+                          <p className="card-description-clip">{report.description}</p>
+
+                          <div className="card-attributes">
+                            <div className="attr-item">
+                              <span className="attr-label">Agency</span>
+                              <span className="attr-value">{report.category_detail?.assignment_group}</span>
+                            </div>
+                            <div className="attr-item">
+                              <span className="attr-label">Status:</span>
+                              <span className="attr-value text-green">{report.status_display}</span>
+                            </div>
+                          </div>
+
+                          <div className="card-footer">
+                            <span className="card-timestamp">{new Date(report.created_at).toLocaleDateString()}</span>
+
+                            <div className="card-actions">
+                              {report.media_attachments?.length > 0 && (
+                                <span className="media-indicator" title={`${report.media_attachments.length} evidence attachments`}>
+                                  📷 {report.media_attachments.length}
+                                </span>
+                              )}
+
+                              <button
+                                className="card-upvote-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpvote(report.id);
+                                }}
+                                disabled={['Resolved', 'Rejected'].includes(report.status)}
+                              >
+                                ▲ {report.upvote_count}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         )}
-      </main>
 
-    )
-}
+        {/*tab3*/}
+        {activeTab==='submit_ticket' && (
+          <div className="viewport-layout form-view-tab">
+            <div className="panel-header">
+              <div>
+                <h1>Log Civic Incident</h1>
+                <p>Register structural or municipal hazards. The AI Urgency classifier scans payloads to adjust department dispatches immediatly</p>
+              </div>
+            </div>
+
+            <div className="form-layout-box">
+              <form onSubmit={handleFormSubmit} className="incident-submit-form">
+
+                <div className="form-group-grid">
+
+                  {/*Summary Title */}
+                  <div className="form-element col-span-2">
+                    <label className="element-label">Summary Title</label>
+                    <input
+                    type="text"
+                    placeholder="e.g Gas odor emerging near storm drain gate"
+                    value={form.title}
+                    onChange={(e) => setForm(prev => ({...prev, title: e.target.value}))}
+                    className={formErrors.title ? 'input-error': ''}
+                    />
+                    {formErrors.title && <span className="error-message-tag">{formErrors.title}</span>}
+                    <span className="input-hint">Summarize the issue clearly (5-150 characters). Avoid Testing characters</span>
+                  </div>
+
+                  {/*Category Dropdown*/}
+                  <div className="form-element col-span-2">
+                    <label className="element-label">Civic Classification Category</label>
+                    <select
+                    value={form.category_id}
+                    onChange={(e)=>setForm(prev=>({...prev, category_id: e.target.value}))}
+                    className={formErrors.category_id ? 'input-error':''}
+                    >
+                      <option value="">Pick Category</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} (Assigned: {c.assignment_group})</option>
+                      ))}
+                    </select>
+                    {formErrors.category_id && <span className="error-message-tag">{formErrors.category_id}</span>}
+                    <span className="input-hint">Links incident straight to specific responsive municipal divisions</span>
+                  </div>
+
+                  {/*Coordinates Ingestion */}
+                  <div className="form-element">
+                    <label className="element-label">Geospatial Latitude</label>
+                    <div className="coordinate-input-container">
+                      <input
+                      type="number"
+                      step="0.000001"
+                      placeholder={`e.g, 40.7589`}
+                      value={form.latitude}
+                      onChange={(e)=> setForm(prev => ({...prev, latitude: e.target.value}))}
+                      className={formErrors.latitude ? 'input-error' : ''}
+                      />
+                    </div>
+                    {formErrors.latitude && <span className="error-message-tag">{formErrors.latitude}</span>}
+                  </div>
+
+                  <div className="form-element">
+                    <label className="element-label">Geospatial Longitude</label>
+                    <div className="coordinate-input-containter">
+                      <input
+                      type="number"
+                      step="0.0000001"
+                      placeholder={`e.g. -73.9851`}
+                      value={form.longitude}
+                      onChange={(e)=>setForm(prev => ({...prev, longitude: e.target.limit}))}
+                      className={formErrors.longitude ? 'input-error': ''}
+                      />
+                    </div>
+                    {formErrors.longitude && <span className="error-message-tag">{formErrors.longitude}</span>}
+                  </div>
+
+                  {/*Helper Ribbon */}
+                  <div className="coordinate-actions-ribbon col-span-2">
+                    <button
+                    type="button"
+                    className="coordinate-utility-btn"
+                    onClick={triggerBrowserGeolocation}
+                    >
+                      Access Browser Geolocation GPS
+                    </button>
+                    <button
+                    type="button"
+                    className="coordinate-utility-btn"
+                    onClick={()=> {
+                      setActiveTab('dashboard_map');
+                      triggerNotification('info', 'Click on the map grid to capture coordinates');
+                    }}
+                    >
+                      Select Coordinates from Map
+                    </button>
+                  </div>
+
+                  {/*Detailed Description*/}
+                  <div className="form-elements col-span-2">
+                    <label className="element-label">Detailed Incident Description</label>
+                    <textarea
+                    rows="5"
+                    placeholder="Detail physical properties, size, street numbers, vechial tags, hazards durations, and historical context..."
+                    value={form.description}
+                    onChange={(e)=>setForm(prev=> ({...prev, description: e.target.value}))}
+                    className={formErrors.description ? 'input-error':''}
+                    />
+                    <div className="textarea-counter-bar">
+                      {formErrors.description && <span className="error-message-tag">{formErrors.description}</span>}
+                      <span className="character-counter">
+                        Remaining: {Math.max(0, 1000 - form.description.length)} / Min required: 15
+                      </span>
+                    </div>
+                  </div>
+
+                  {/*Drag and Drop */}
+                  <div className="form-element col-span-2">
+                    <label className="element-label">Attach Photo Evidence</label>
+
+                    <div
+                    className={`drag-upload-zone ${isDragOver ? 'drag-over': ''}`}
+                    onDragOver={()=> setIsDragOver(false)}
+                    onDrop={handleFileDrop}
+                    onClick={()=> fileInputRef.current?.click()}
+                    >
+                      <input
+                      type="file"
+                      ref={fileInputRef}
+                      multiple
+                      accept="image/"
+                      style={{display: 'none'}}
+                      onChange={handleFileSelect}
+                      />
+                      <span className="upload-icon"></span>
+                      <h4>Drag and drop photo evidence files here</h4>
+                      <p>Or click to browse from local computer. Image files only. Max 5MB per upload</p>
+                    </div>
+
+                    {/*Previews*/}
+                    {form.files.length > 0 && (
+                      <div className="uploaded-files-carousel">
+                        {form.files.map((file, idx) => {
+                          const src = URL.createObjectURL(file);
+                          return (
+                            <div key={idx} className="evidence-preview-card">
+                              <img src={src} alt="Upload Preview" />
+                              <div className="preview-meta">
+                                <span className="preview-filename">{file.name}</span>
+                                <span className="preview-size">{(file.size / 1024).toFixed(1)} KB </span>
+                                </div>
+                                <button
+                                type="button"
+                                className="remove-preview-button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeSelectedFile(idx);
+                                }}
+                                >
+
+                                </button>
+                                </div>
+                          );
+                        })}
+                        </div>
+                    )}
+                  </div>
+                </div>
+                <div className="form-submit-row">
+                  <button
+                  type="submit"
+                  className="form-submit-trigger"
+                  disabled={isSubmitting}
+                  >
+
+                    {isSubmitting ? "Registering Incident...":"Register Civic Report"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+        )}
+      </main>
