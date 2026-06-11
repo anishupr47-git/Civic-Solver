@@ -16,7 +16,7 @@ class NotificationService:
     @staticmethod
     def dispatch_issue_alerts(report: IssueReport):
         """Notifies Municipalities"""
-        priority = "HIGH" if (report.automated_priority_override or report.Category.priority == "High") else report.category.priority.upper()
+        priority = "HIGH" if (report.automated_priority_override or report.category.priority == "High") else report.category.priority.upper()
 
         logger.info(
             f"[NOTIFICATION SERVICE] Processing dispatch alerts for Issue {report.ticket_number} (Priority: {priority})"
@@ -27,18 +27,18 @@ class NotificationService:
             "ticket_number": report.ticket_number,
             "priority": priority,
             "assignment_group": report.category.assignment_group,
-            "message": f"CRITICAL INCIDENT ALERT: {report.title} reported at coordinates ({report.latitude}, {report.longtitude})"
+            "message": f"CRITICAL INCIDENT ALERT: {report.title} reported at coordinates ({report.latitude}, {report.longitude})"
         }
         logger.info(f"[SMS WEBHOOK] Fired Webhook to municipal response networks successfully with: {payload}")
 
         #2Mock Email to Civic Dispatch Networks
-        email_recipient = f"dispatch.{report.category.assignment_group.lower().replace('','_')}@metropolis.gov"
+        email_recipient = f"dispatch.{report.category.assignment_group.lower().replace(' ', '_')}@metropolis.gov"
         email_body = (
             f"Subject: [INCIDENT REPORT] {report.ticket_number}-{priority} priority\n"
             f"Attention: {report.category.assignment_group}\n\n"
             f"A civic report was logged in the system with title: '{report.title}'\n"
             f"Description: {report.description}\n"
-            f"Location: Lat {report.latitude}, Lon {report.longtitude}\n"
+            f"Location: Lat {report.latitude}, Lon {report.longitude}\n"
             f"Reported At: {report.created_at}\n\n"
             f"Municipal action is requested. Please Investigate nicely"
         )
@@ -74,8 +74,12 @@ class ReportProcessingService:
         lon_min = cls.METROPOLIS_BOUNDS['LON_MIN']
         lon_max= cls.METROPOLIS_BOUNDS['LON_MAX']
 
-        if not (lat_min <= latitude <=lat_max):
-            logger.warning(f"Latitude {latitude} falls outside Metropolis municipal boundary [{lon_min}, {lon_max}]")
+        if not (lat_min <= latitude <= lat_max):
+            logger.warning(f"Latitude {latitude} falls outside Metropolis municipal boundary [{lat_min}, {lat_max}]")
+            raise ValidationError(f"Coordinates fall outside Metropolis borders. Latitude must be between {lat_min} and {lat_max}")
+
+        if not (lon_min <= longitude <= lon_max):
+            logger.warning(f"Longitude {longitude} falls outside Metropolis municipal boundary [{lon_min}, {lon_max}]")
             raise ValidationError(f"Coordinates fall outside Metropolis borders. Longitude must be between {lon_min} and {lon_max}")
         
         logger.info("Coordinates successfully validated within Metropolis municipal boundaries")
@@ -148,7 +152,7 @@ class ReportProcessingService:
         combined_text = (title + " " + description).lower()
 
         high_risk_triggers = [
-            "gas_leak",
+            "gas leak",
             "bleeding",
             "collapsed",
             "sinkhole",
@@ -158,7 +162,7 @@ class ReportProcessingService:
             "flooding",
             "downed wire",
             "broken main",
-            "live power"
+            "live power",
             "hazardous waste"
         ]
 

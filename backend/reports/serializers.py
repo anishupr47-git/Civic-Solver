@@ -10,7 +10,7 @@ class CategorySerializer(serializers.ModelSerializer):
     Serializer mapping Category schema properties, supporting full read/write operations.
     """
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
-    assignment_group_display = serializers.CharField(source='get_asignment_group_display', read_only = True)
+    assignment_group_display = serializers.CharField(source='get_assignment_group_display', read_only = True)
 
     class Meta:
         model = Category
@@ -63,6 +63,7 @@ class StatusUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'previous_status',
+            'previous_status_display',
             'new_status',
             'new_status_display',
             'comment',
@@ -90,19 +91,19 @@ class IssueReportSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'category',
-            'category_details',
+            'category_detail',
             'latitude',
             'longitude',
             'status',
             'status_display',
             'automated_priority_override',
             'reporter_username',
-            'anonymouse_reporter_hash',
+            'anonymous_reporter_hash',
             'upvote_count',
             'media_attachments',
             'history_logs',
             'created_at',
-            'upadated_at',
+            'updated_at',
         ]
         read_only_fields = [
             'id',
@@ -138,15 +139,15 @@ class IssueReportSerializer(serializers.ModelSerializer):
         for spam in spam_words:
             if spam in trimmed.lower():
                 logger.warning(f"Potential spam detected in title: {trimmed}")
-                serializers.ValidationError("Description must contain at least 15 characters of diagnostic details")
-            return trimmed
+                raise serializers.ValidationError("Title contains spam content")
+        return trimmed
         
     def validate_description(self, value):
         """Ensures report description contains descriptive information for investigators"""
         trimmed = value.strip()
         if len(trimmed) < 15:
             logger.warning(f"Validation failure on description length: '{trimmed}' too short")
-            serializers.ValidationError("Description must contain at least 15 characters of diagnostic details")
+            raise serializers.ValidationError("Description must contain at least 15 characters of diagnostic details")
         return trimmed
     
     def validate(self, data):
@@ -158,12 +159,12 @@ class IssueReportSerializer(serializers.ModelSerializer):
         lon = data.get('longitude')
 
         if lat is not None and not (-90.0 <= lat <= 90.0):
-            raise serializers.ValidatonError({
+            raise serializers.ValidationError({
                 "latitude": "Latitude coordinates must reside within [-90.0, 90.0]"
             })
         if lon is not None and not (-180.0 <= lon <= 180.0):
             raise serializers.ValidationError({
-                "longitude": "Longitude coordinates must reside within [-180.0. 180.0]"
+                "longitude": "Longitude coordinates must reside within [-180.0, 180.0]"
             })
         
         return data

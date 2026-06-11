@@ -40,8 +40,8 @@ class CivicIssueTrackerTestCase(TestCase):
     def test_geospatial_bounds_validation(self):
         """Test that coordinates"""
         #Inside metropolis bounds
-        valid_late = 40.7500
-        valid_long = -73.9500
+        valid_lat = 40.7500
+        valid_lon = -73.9500
 
         #Should not raise exception
         try:
@@ -83,7 +83,7 @@ class CivicIssueTrackerTestCase(TestCase):
         Tests that when a duplicate report is submitted upvote increaments
         """
         #Create base active report via service pipeline so history log triggers
-        base_report,-=ReportProcessingService.create_issue_reports(
+        base_report, is_dup_first = ReportProcessingService.create_issue_reports(
             title="Pothole on Main St",
             description="Deep pothole in the second lane, causing cars to swerve",
             category_id=self.road_category.id,
@@ -99,14 +99,14 @@ class CivicIssueTrackerTestCase(TestCase):
             description="Another report of the same pothole near intersection",
             category_id=self.road_category.id,
             latitude=40.7302,
-            longitude=-73.9100,
+            longitude=-73.9005,
             anonymous_reporter_hash="citizen_test_hash"
         )
 
-        self.assertFalse(is_dup)
-        self.assertEqual(report.title, "Clean street sweep requested")
-        self.assertEqual(repoort.upvote_count, 1)
-        self.assertEqual(report.history_logs.first().new_status, "Open")
+        self.assertTrue(is_dup)
+        self.assertEqual(dup_report_instance.id, base_report.id)
+        base_report.refresh_from_db()
+        self.assertEqual(base_report.upvote_count, 2)
 
 class CivicIssueTrackerAPITestCase(APITestCase):
     """
@@ -143,7 +143,7 @@ class CivicIssueTrackerAPITestCase(APITestCase):
     def test_list_reports_endpoint_with_filters(self):
         """Tests fetching lists of issues and filtering via coordinates"""
         #Fetch All
-        response = self.client.get('/api/reports')
+        response = self.client.get('/api/reports/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
@@ -185,6 +185,6 @@ class CivicIssueTrackerAPITestCase(APITestCase):
         latest_log = StatusUpdate.objects.filter(report=self.report).last()
         self.assertEqual(latest_log.previous_status, "Open")
         self.assertEqual(latest_log.new_status, "In Progress")
-        self.assertEqual(latest_log.comment, "Maintaince Truck #14 dispatched to empty park dumpster")
-        self.assertEqual(latest_log.administrative_notes, "State transtioned by city dispatcher")
+        self.assertEqual(latest_log.comment, "Maintenance Truck #14 dispatched to empty park dumpster")
+        self.assertEqual(latest_log.administrative_notes, "State transitioned by city dispatcher")
 

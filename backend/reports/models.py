@@ -56,15 +56,15 @@ class IssueReport(models.Model):
     ticket_number= models.CharField(max_length=20,unique=True,editable=False,verbose_name="Ticket Tracking Identifier")
     title= models.CharField(max_length=150, verbose_name="Issue Title Summary")
     description = models.TextField(verbose_name="Detailed Issue Description")
-    Category=models.ForeignKey(Category,on_delete=models.PROTECT, related_name="reports", verbose_name="Issue Classification")
+    category = models.ForeignKey(Category,on_delete=models.PROTECT, related_name="reports", verbose_name="Issue Classification")
     latitude = models.FloatField(verbose_name="Geospatial Longitude")
-    longtitude = models.FloatField(verbose_name="Geospatial Longitude")
+    longitude = models.FloatField(verbose_name="Geospatial Longitude")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Open", verbose_name="Remediation Status")
     automated_priority_override = models.BooleanField(default=False, verbose_name="AI Priority Override Elevated")
     reported_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="submitted_issues", verbose_name="Reporting Citizen")
     anonymous_reporter_hash = models.CharField(max_length=64, verbose_name="Anoymized Signature Hash")
     upvote_count = models.IntegerField(default=0,verbose_name="Upvote Verification Count")
-    created = models.DateTimeField(auto_now=True, verbose_name="Created At")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated At")
 
     class Meta:
@@ -79,8 +79,8 @@ class IssueReport(models.Model):
         """Perform basic validation check"""
         if not (-90.0 <= self.latitude <= 90.0):
             raise ValidationError({'latitude':'Latitude must sit withing [-90.0, 90.0] limits '})
-        if not (-180.0 <= self.longtitude <=180.0):
-            raise ValidationError({'longtitude':'Longitude must sit within [-180.0, 180.0] limits'})
+        if not (-180.0 <= self.longitude <=180.0):
+            raise ValidationError({'longitude':'Longitude must sit within [-180.0, 180.0] limits'})
         
     def save(self, *args, **kwargs):
         """Custom excecution pipeline generating ticket counter and committing data rows"""
@@ -122,9 +122,9 @@ class StatusUpdate(models.Model):
 
 def get_attachment_upload_path(instance, filename):
     """Generates clean directory for citizen media file uploads"""
-    ext = filename.split('.'[-1])
+    ext = filename.split('.')[-1]
     name = uuid.uuid4().hex
-    return f"reports/instance.report.ticket_number/{name}.{ext}"
+    return f"reports/{instance.report.ticket_number}/{name}.{ext}"
 
 
 class MediaAttachment(models.Model):

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 import logging
-from resr_framework.views import APIView
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
@@ -34,10 +34,10 @@ class IssueReportListCreateAPIView(APIView):
         queryset = IssueReport.objects.all()
 
         #1. Bounding Box Geospatial Filter
-        lat_min = request.query_parms.get('lat_min')
-        lat_max = request.query_parms.get('lat_max')
-        lon_min = request.query_parms.get('lon_min')
-        lon_max = request.query_parms.get('lon_max')
+        lat_min = request.query_params.get('lat_min')
+        lat_max = request.query_params.get('lat_max')
+        lon_min = request.query_params.get('lon_min')
+        lon_max = request.query_params.get('lon_max')
 
         if all(v is not None for v in [lat_min, lat_max, lon_min, lon_max]):
             try:
@@ -90,9 +90,10 @@ class IssueReportListCreateAPIView(APIView):
                 ticket_number__icontains=search_query
             )
             logger.debug(f"Applied query text search parameter: '{search_query}'")
-            #Serialize results and output
-            serializer = IssueReportSerializer(queryset, many=True, context={'request':request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        #Serialize results and output
+        serializer = IssueReportSerializer(queryset, many=True, context={'request':request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
         
     def post(self, request, *args, **kwargs):
         logger.info("IssueReportListCreateAPIVIEW POST - Regestering new citizen civic incident")

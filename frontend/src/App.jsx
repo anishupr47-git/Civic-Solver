@@ -24,7 +24,7 @@ function deprojectCoords(x,y) {
 export default function App() {
   //State system architecture
   const [activeTab,setActiveTab] = useState('dashboard_map');
-  const [reports,seReports] = useState([]);
+  const [reports,setReports] = useState([]);
   const [categories,setCategories] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -272,14 +272,14 @@ export default function App() {
       if (response.duplicate_matched) {
         //spatial engine absorbed the ticket
         triggerNotification('info', response.message);
-        seReports(prev=>prev.map(r=>r.ticket_number === response.ticket_number ? response.data : r));
+        setReports(prev=>prev.map(r=>r.ticket_number === response.ticket_number ? response.data : r));
         setSelectedReport(response.data);
         setActiveTab('dashboard_map');
       } else {
         //Brand new register
         triggerNotification('success', `Incident logged successfully! Ticket: ${response.ticket_number}`);
-        seReports(prev => [response, ...prev]);
-        selectedReport(response);
+        setReports(prev => [response, ...prev]);
+        setSelectedReport(response);
         setActiveTab('dashboard_map');
       }
 
@@ -351,8 +351,10 @@ export default function App() {
 
   const handleMapMouseMove = (e) => {
     if (!isDraggingMap) return;
-    setIsDraggingMap(true);
-    setDragStart({x: e.clientX - mapOffset.x, y:e.clientY - mapOffset.y});
+    setMapOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
   };
 
   const handleMapMouseUpOrLeave = () => {
@@ -411,7 +413,7 @@ export default function App() {
     processUploadedFiles(selectedFiles);
   };
 
-  const processUploadFiles = (fileList) => {
+  const processUploadedFiles = (fileList) => {
     //standard validation upto 5mb only
     const validFiles = [];
     const errors = [];
@@ -470,7 +472,7 @@ export default function App() {
       search: '',
       category: '',
       status: [],
-      proiority: '',
+      priority: '',
       agency: '',
     });
   };
@@ -490,7 +492,7 @@ export default function App() {
       return false;
     }
 
-    if (filters.priority && r.category_detail?.proiority !== filters.priority) {
+    if (filters.priority && r.category_detail?.priority !== filters.priority) {
       return false;
     }
 
@@ -1140,7 +1142,7 @@ export default function App() {
                       step="0.0000001"
                       placeholder={`e.g. -73.9851`}
                       value={form.longitude}
-                      onChange={(e)=>setForm(prev => ({...prev, longitude: e.target.limit}))}
+                      onChange={(e)=>setForm(prev => ({...prev, longitude: e.target.value}))}
                       className={formErrors.longitude ? 'input-error': ''}
                       />
                     </div>

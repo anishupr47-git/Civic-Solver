@@ -15,7 +15,7 @@ class RateLimitAndAnonymizationMiddleware:
         #Dictionary structure
         self.write_request_logs = {}
         self.general_request_logs = {}
-        self.lock = {}
+        self.lock = threading.Lock()
 
         #LIMITS CONFIGURATION
         self.WRITE_LIMIT = 6
@@ -33,7 +33,7 @@ class RateLimitAndAnonymizationMiddleware:
     
     def _calculate_reporter_hash(self, ip, user_agent):
         """Computes a signature of IP and user agent to track"""
-        date=f"{ip}:{user_agent}:CIVIC_SALT_98745".encode('utf=8')
+        data = f"{ip}:{user_agent}:CIVIC_SALT_98745".encode('utf-8')
         return hashlib.sha256(data).hexdigest()
     
     def _is_rate_limited(self, log_dict, signature, limit_threshold):
@@ -41,7 +41,7 @@ class RateLimitAndAnonymizationMiddleware:
         Thread-safe check to check
         """
         now = time.time()
-        cutoff = now = self.WINDOW_SIZE
+        cutoff = now - self.WINDOW_SIZE
 
         with self.lock:
             #Initialize log list if not present
@@ -54,18 +54,24 @@ class RateLimitAndAnonymizationMiddleware:
             history = log_dict[signature]
             current_count = len(history)
 
-            #calculate metrics
-            remaining = max(0, limit_threshold - current_count)
-
-            if current_count > 0:
-                oldest_timestamp = history[0]
-                reset_time = max(0, int(self.WINDOW_SIZE - (now - oldest_timestamp)))
-            else:
-                reset_time=0
-
             if current_count >= limit_threshold:
+                if current_count > 0:
+                    oldest_timestamp = history[0]
+                    reset_time = max(0, int(self.WINDOW_SIZE - (now - oldest_timestamp)))
+                else:
+                    reset_time = 0
                 logger.warning(f"[RATE LIMIT] Client signature {signature[:8]} exceeded limits ({current_count}/{limit_threshold})")
                 return True, 0, reset_time
+
+            # Record the current request timestamp
+            log_dict[signature].append(now)
+            new_count = current_count + 1
+            remaining = max(0, limit_threshold - new_count)
+
+            oldest_timestamp = log_dict[signature][0]
+            reset_time = max(0, int(self.WINDOW_SIZE - (now - oldest_timestamp)))
+
+            return False, remaining, reset_time
             
     def __call__(self, request):
         #we only rate limit and anoymize calls hitting /api/
