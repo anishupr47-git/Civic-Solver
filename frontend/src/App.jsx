@@ -530,7 +530,7 @@ export default function App() {
         <div className="sidebar-brand">
           <div className="brand-logo">
             <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3 3v7c0 6 8 10 8 10z" />
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
             </svg>
           </div>
@@ -644,7 +644,7 @@ export default function App() {
 
                   {/*Background gridlines */}
                   <defs>
-                    <pattern id="grid" width="40" height="40" patternUnits="useSpaceOnUse">
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1" />
                     </pattern>
                   </defs>
