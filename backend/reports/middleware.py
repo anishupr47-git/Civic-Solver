@@ -23,13 +23,25 @@ class RateLimitAndAnonymizationMiddleware:
         self.WINDOW_SIZE = 60
 
     def _get_client_ip(self, request):
-        """Extracts the true client IP"""
+        """Extracts the true client IP, handling proxies correctly"""
+        # Cloudflare
+        cf_connecting_ip = request.META.get('HTTP_CF_CONNECTING_IP')
+        if cf_connecting_ip:
+            return cf_connecting_ip.strip()
+
+        # Standard real IP headers
+        x_real_ip = request.META.get('HTTP_X_REAL_IP')
+        if x_real_ip:
+            return x_real_ip.strip()
+
+        # Forwarded-For proxy chain
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
-            ip=x_forwarded_for.split(',')[0].strip()
-        else:
-            ip=request.META.get('REMOTE_ADDR', '127.0.0.1')
-        return ip
+            return x_forwarded_for.split(',')[0].strip()
+
+        # Fallback
+        return request.META.get('REMOTE_ADDR', '127.0.0.1')
+
     
     def _calculate_reporter_hash(self, ip, user_agent):
         """Computes a signature of IP and user agent to track"""
@@ -74,9 +86,14 @@ class RateLimitAndAnonymizationMiddleware:
             return False, remaining, reset_time
             
     def __call__(self, request):
-        #we only rate limit and anoymize calls hitting /api/
+        # Skip rate-limiting and anonymization for Django Admin paths
+        if 'admin' in request.path:
+            return self.get_response(request)
+
+        # we only rate limit and anonymize calls hitting /api/
         if not request.path.startswith('/api/'):
             return self.get_response(request)
+
         
 
         #1 capture client ip and user agent

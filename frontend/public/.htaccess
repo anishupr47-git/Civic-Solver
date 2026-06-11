@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  
+  # Exclude API and Media paths from React's route rewriting
+  # so they are correctly handled by the Django backend
+  RewriteCond %{REQUEST_URI} !^/api [NC]
+  RewriteCond %{REQUEST_URI} !^/media [NC]
+  
+  # Forward all other non-file/directory requests to index.html for React Router
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>
