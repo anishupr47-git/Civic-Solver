@@ -58,3 +58,8 @@ You can make a new report to help the city! You can choose from these categories
 * City workers can log in to a special boss screen.
 * They can look at the reports and change the status.
 * They can change a report from **"New"** to **"Investigating"** (looking at it) and then to **"Resolved"** (all fixed!).
+ <img width="2560" height="1303" alt="Screenshot (310)" src="https://github.com/user-attachments/assets/ca26fb91-2cbc-4b97-a56e-0921bfbf4f66" />
+<img width="2560" height="1315" alt="Screenshot (315)" src="https://github.com/user-attachments/assets/2b6c5451-45ab-47a4-abaf-1e0ffae11da5" />
+<img width="2560" height="1297" alt="Screenshot (314)" src="https://github.com/user-attachments/assets/cab10603-5ca4-45d6-96fa-62328551f327" />
+<img width="2560" height="1346" alt="Screenshot (313)" src="https://github.com/user-attachments/assets/ad0c043a-c541-44bc-ad60-89689c5eadc0" />
+
