@@ -1251,6 +1251,178 @@ export default function App() {
               </form>
             </div>
           </div>
-          
+
         )}
+        {/*Analytics Insights*/}
+        {activeTab === 'analytics_insights' && (
+          <div className="viewport-layout analytics-view-tab">
+            <div className="panel-header">
+              <div>
+                <h1>Municipal Grid Analytics</h1>
+                <p>Real-time analytics graphs demonstrating operational dispatch loads, report priority spreads, and resolution metrices</p>
+              </div>
+            </div>
+
+            <div className="analytics-dashboard-grid">
+
+              {/*High Level Counts*/}
+              <div className="count-metric-card">
+                <h3>Total Reports Logged</h3>
+                <span className="metric-number">{reports.length}</span>
+                <span className="metric-subtext">Cumulative reports inside active archives</span>
+              </div>
+
+              <div className="count-metric-card">
+                <h3>Active Incidents</h3>
+                <span className="metric-number text-yellow">
+                  {reports.filter(r=> ['Open', 'Investigating', 'Scheduled', 'In Progress'].includes(r.status)).length}
+                </span>
+                <span className="metric-subtext">Issues awaiting final municipal sweeps</span>
+              </div>
+
+              <div className="count-metric-card">
+                <h3>Remediation Rate</h3>
+                <span className="metric-number text=green">
+                {reports.length > 0
+                  ?`${Math.round((reports.filter(r=>r.status === 'Resolved').length / reports.length) * 100)}%`
+                  : '0%'
+                }
+                </span>
+                <span className="matric-subtext">Closed tickets / overall queue volume</span>
+              </div>
+
+              <div className="count-metric-card">
+                <h3>AI Urgency Evaluations</h3>
+                <span className="metric-number text-cyan">
+                  {reports.filter(r=>r.automated_priority_override).length}
+                </span>
+                <span className="metric-subtext">Tickets priority elevated via text scanning</span>
+              </div>
+
+              {/*Pure svg bar chart*/}
+              <div className="analytics-plot-card col-span-2">
+                <h3>Incident Frequency by category</h3>
+                <div className="plot-canvas">
+                  <svg viewBox="0 0 600 240" className="plot-svg">
+                    {/*Plot coordinates */}
+                    {categories.map((cat, idx) => {
+                      const count = reports.filter(r=> r.category_detail?.id === cat.id).length;
+                      const maxVal = Math.max(...categories.map(c=> reports.filter(r=>r.category_detail?.id===c.id).length),1);
+                      const barHeight = (count / maxVal) * 140;
+                      const x = 50 + idx * 110;
+                      const y = 180 - barHeight;
+
+                      return (
+                        <g key={cat.id}>
+                          {/*Value Label*/}
+                          <text x={x+35} y={y-8} fill="#94a3b8" fontSize="10" textAnchor="middle" fontWeight="bold">
+                            {count}
+                          </text>
+                          {/*Grid Bar*/}
+                          <rect
+                          x={x}
+                          y={y}
+                          width="70"
+                          height={barHeight}
+                          rx="4"
+                          fill="var(--accent-cyan)"
+                          opacity="0.75"
+                          className="analytics-bar-glow"
+                          />
+                          {/*X label */}
+                          <text x={x+35} y="200" fill="#94a4b8" fontSize="8" textAnchor="middle" transform={`rotate(0, ${x+35}, 200)`}>
+                            {cat.name.split(' ')[0]}
+                          </text>
+                        </g>
+                      );
+                    })}
+                    {/*base floor*/}
+                    <line x1="30" y1="180" x2="580" y2="180" stroke="rgba(148,163,184,0.2)" strokeWidth="2"/>
+                  </svg>
+
+                </div>
+              </div>
+
+              {/*SVG PIECHART */}
+              <div className="analytics-plot-card">
+                <h3>Incident Priority Spread</h3>
+                <div className="plot-canvas-center">
+                  <svg viewBox="0 0 200 200" width="160" height="160" className="plot-svg">
+                    {/*svg piechart projection */}
+                    { (() => {
+                      const high = reports.filter(r => r.category_detail?.priority === 'High' || r.automated_priority_override).length;
+                      const med = reports.filter(r => r.category_detail?.priority === 'Medium' && !r.automated_priority_override).length;
+                      const low = reports.filter(r => r.category_detail?.priority === 'Low' && !r.automated_priority_override).length;
+                      const total = high + med + low || 1;
+
+                      const highPct = high / total;
+                      const medPct = med / total;
+
+                      //compute stroke
+                      const r= 50;
+                      const circ = 2*Math.PI * r;
+
+                      const dashHigh = circ * highPct
+                      const dashMed = circ * medPct;
+                      const dashLow = circ * (low / total);
+
+                      return (
+                        <g transform="rotate(-90 100 100)">
+                          {/* High */}
+                          <circle
+                            cx="100" cy="100" r={r}
+                            fill="none"
+                            stroke="var(--priority-high)"
+                            strokeWidth="24"
+                            strokeDasharray={`${dashHigh} ${circ - dashHigh}`}
+                            strokeDashoffset="0"
+                          />
+                          {/* Medium */}
+                          <circle
+                            cx="100" cy="100" r={r}
+                            fill="none"
+                            stroke="var(--priority-medium)"
+                            strokeWidth="24"
+                            strokeDasharray={`${dashMed} ${circ - dashMed}`}
+                            strokeDashoffset={-dashHigh}
+                          />
+                          {/* Low */}
+                          <circle
+                            cx="100" cy="100" r={r}
+                            fill="none"
+                            stroke="var(--priority-low)"
+                            strokeWidth="24"
+                            strokeDasharray={`${dashLow} ${circ - dashLow}`}
+                            strokeDashoffset={-(dashHigh + dashMed)}
+                          />
+                        </g>
+                      );
+                    })()}
+                  </svg>
+
+                  <div className="pie-legend">
+                    <div className="legend-item">
+                      <span className="legend-dot bg-red"></span>
+                      <span>High ({reports.filter(r => r.category_detail?.priority === 'High' || r.automated_priority_override).length})</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-dot bg-yellow"></span>
+                      <span>Medium ({reports.filter(r => r.category_detail?.priority === 'Medium' && !r.automated_priority_override).length})</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-dot bg-cyan"></span>
+                      <span>Low ({reports.filter(r => r.category_detail?.priority === 'Low' && !r.automated_priority_override).length})</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </main>
+    </div>
+  );
+}
