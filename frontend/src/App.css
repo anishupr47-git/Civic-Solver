@@ -16,8 +16,8 @@ body {
   overflow: hidden;
 }
 
-/* Layout Structure */
-.app-container {
+/*layout struct */
+.container2 {
   display: flex;
   height: 100vh;
   width: 100vw !important;
@@ -26,8 +26,8 @@ body {
   background-image: none !important;
 }
 
-/* Sidebar panel */
-.diagnostic-sidebar {
+/*sidebarr*/
+.sidebar {
   width: 280px;
   background-color: #000000 !important;
   border-right: 1px solid #FFFFFF !important;
@@ -38,7 +38,7 @@ body {
   z-index: 100;
 }
 
-.sidebar-brand {
+.brand {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -47,7 +47,7 @@ body {
   margin-bottom: 24px;
 }
 
-.brand-logo {
+.logo {
   width: 44px;
   height: 44px;
   display: flex;
@@ -58,26 +58,26 @@ body {
   border: 1px solid #FFFFFF !important;
 }
 
-.brand-text h2 {
+.text h2 {
   font-size: 16px;
   font-weight: normal !important;
   color: #FFFFFF !important;
 }
 
-.brand-text span {
+.text span {
   font-size: 10px;
   color: #FFFFFF !important;
   font-weight: normal !important;
 }
 
-.sidebar-nav {
+.nav {
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex-grow: 1;
 }
 
-.nav-item {
+.item4 {
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
   background-color: #000000 !important;
@@ -89,13 +89,13 @@ body {
   text-align: left;
 }
 
-.nav-item:hover,
-.nav-item.active {
+.item4:hover,
+.item4.active {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.badge-count {
+.count {
   margin-left: auto;
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
@@ -103,8 +103,8 @@ body {
   padding: 2px 8px;
 }
 
-/* Diagnostic Monitors */
-.diagnostic-monitor {
+/*monitors*/
+.monitor {
   margin-top: auto;
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
@@ -114,58 +114,58 @@ body {
   gap: 12px;
 }
 
-.monitor-header h3 {
+.header3 h3 {
   font-size: 12px;
   font-weight: normal !important;
   color: #FFFFFF !important;
 }
 
-.status-dot {
+.dot2 {
   width: 8px;
   height: 8px;
   background-color: #FFFFFF !important;
   border: 1px solid #FFFFFF !important;
 }
 
-.monitor-stats {
+.stats {
   display: flex;
   flex-direction: column;
   gap: 6px;
   font-size: 12px;
 }
 
-.stat-row {
+.row3 {
   display: flex;
   justify-content: space-between;
 }
 
-.stat-label,
-.stat-value,
-.text-green,
-.text-yellow {
+.label3,
+.value,
+.green,
+.yellow {
   color: #FFFFFF !important;
   font-weight: normal !important;
 }
 
-.signature-box {
+.box3 {
   margin-top: 4px;
   border-top: 1px solid #FFFFFF !important;
   padding-top: 8px;
 }
 
-.sig-label {
+.label5 {
   font-size: 10px;
   color: #FFFFFF !important;
 }
 
-.sig-value {
+.value3 {
   font-size: 10px;
   color: #FFFFFF !important;
   word-break: break-all;
 }
 
-/* Main page view content */
-.main-viewport {
+/*main page*/
+.viewport {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -174,7 +174,7 @@ body {
   background-color: #000000 !important;
 }
 
-.viewport-layout {
+.layout2 {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -182,7 +182,7 @@ body {
   overflow-y: auto;
 }
 
-.panel-header {
+.header5 {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -190,24 +190,24 @@ body {
   flex-shrink: 0;
 }
 
-.panel-header h1 {
+.header5 h1 {
   font-size: 26px;
   font-weight: normal !important;
   color: #FFFFFF !important;
   margin-bottom: 6px;
 }
 
-.panel-header p {
+.header5 p {
   font-size: 14px;
   color: #FFFFFF !important;
 }
 
-/* Interactive map view */
-.map-view-tab {
+/*interactive map*/
+.tab {
   padding: 32px;
 }
 
-.map-toolbar {
+.toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -216,7 +216,7 @@ body {
   padding: 4px 12px;
 }
 
-.control-btn {
+.btn7 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -228,18 +228,18 @@ body {
   justify-content: center;
 }
 
-.control-btn:hover {
+.btn7:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.zoom-indicator {
+.indicator2 {
   font-size: 12px;
   color: #FFFFFF !important;
   margin-left: 8px;
 }
 
-.map-canvas-container {
+.container {
   flex-grow: 1;
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
@@ -247,57 +247,58 @@ body {
   overflow: hidden;
 }
 
-.map-svg-grid {
+.grid5 {
   width: 100%;
   height: 100%;
   display: block;
   cursor: grab;
 }
 
-.map-svg-grid.dragging {
+.grid5.dragging {
   cursor: grabbing;
 }
 
-.map-svg-grid rect,
-.map-svg-grid path,
-.map-svg-grid circle,
-.map-svg-grid line {
+.grid5 rect,
+.grid5 path,
+.grid5 circle,
+.grid5 line {
   stroke: #FFFFFF !important;
 }
 
-.map-svg-grid text {
+.grid5 text {
   fill: #FFFFFF !important;
   stroke: none !important;
 }
 
-/* Disable map specific colored styles */
-.map-svg-grid [fill="var(--accent-cyan)"],
-.map-svg-grid [fill="var(--priority-high)"],
-.map-svg-grid [fill="var(--priority-medium)"],
-.map-svg-grid [fill="var(--priority-low)"] {
+
+.grid5 [fill="var(--accent-cyan)"],
+.grid5 [fill="var(--priority-high)"],
+.grid5 [fill="var(--priority-medium)"],
+.grid5 [fill="var(--priority-low)"] {
   fill: #000000 !important;
   stroke: #FFFFFF !important;
 }
 
-.marker-core {
+.core {
   fill: #000000 !important;
   stroke: #FFFFFF !important;
   stroke-width: 1px !important;
 }
 
-.marker-pulse-outer,
-.marker-pulse-inner,
-.placement-pin-glow {
-  display: none !important; /* No glows */
+.outer,
+.inner,
+.glow {
+  display: none !important;
+  
 }
 
-.marker-tag {
+.tag4 {
   fill: #FFFFFF !important;
   opacity: 1 !important;
 }
 
-/* MAP SIDE DRAWER */
-.map-side-drawer-overlay {
+/*map functionnss*/
+.overlay {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -311,7 +312,7 @@ body {
   z-index: 10;
 }
 
-.drawer-header {
+.header4 {
   padding: 20px;
   border-bottom: 1px solid #FFFFFF !important;
   display: flex;
@@ -319,19 +320,19 @@ body {
   align-items: flex-start;
 }
 
-.drawer-ticket-tag {
+.tag2 {
   font-size: 12px;
   color: #FFFFFF !important;
 }
 
-.drawer-title {
+.title {
   font-size: 18px;
   font-weight: normal !important;
   color: #FFFFFF !important;
   margin-top: 4px;
 }
 
-.drawer-close-btn {
+.btn4 {
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
   color: #FFFFFF !important;
@@ -339,12 +340,12 @@ body {
   cursor: pointer;
 }
 
-.drawer-close-btn:hover {
+.btn4:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.drawer-scroll-body {
+.body {
   flex-grow: 1;
   overflow-y: auto;
   padding: 20px;
@@ -353,7 +354,7 @@ body {
   gap: 20px;
 }
 
-.drawer-status-bar {
+.bar3 {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -361,8 +362,8 @@ body {
   color: #FFFFFF !important;
 }
 
-.status-badge,
-.ai-override-pill {
+.badge2,
+.pill {
   padding: 4px 10px;
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
@@ -370,39 +371,39 @@ body {
   font-size: 12px;
 }
 
-.drawer-meta-grid {
+.grid3 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.meta-box {
+.box4 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   padding: 10px 12px;
 }
 
-.meta-box span {
+.box4 span {
   display: block;
   font-size: 12px;
   color: #FFFFFF !important;
   margin-bottom: 2px;
 }
 
-.meta-box strong {
+.box4 strong {
   font-size: 14px;
   color: #FFFFFF !important;
   font-weight: normal !important;
 }
 
-.drawer-upvote-counter {
+.counter {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 4px;
 }
 
-.inline-upvote-trigger {
+.trigger {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -411,49 +412,49 @@ body {
   cursor: pointer;
 }
 
-.inline-upvote-trigger:hover {
+.trigger:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.drawer-description-box h4,
-.drawer-media-section h4,
-.drawer-timeline-section h4,
-.drawer-admin-section h4 {
+.box h4,
+.section2 h4,
+.section h4,
+.section3 h4 {
   font-size: 14px;
   font-weight: normal !important;
   color: #FFFFFF !important;
   margin-bottom: 8px;
 }
 
-.drawer-description-box p {
+.box p {
   font-size: 14px;
   color: #FFFFFF !important;
   line-height: 1.6;
 }
 
-.carousel-track {
+.track {
   display: flex;
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 8px;
 }
 
-.carousel-slide-card {
+.card3 {
   flex-shrink: 0;
   width: 140px;
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
 }
 
-.carousel-slide-card img {
+.card3 img {
   width: 100%;
   height: 90px;
   object-fit: cover;
   filter: grayscale(100%);
 }
 
-.slide-meta {
+.meta2 {
   display: block;
   font-size: 10px;
   color: #FFFFFF !important;
@@ -461,7 +462,7 @@ body {
   border-top: 1px solid #FFFFFF !important;
 }
 
-.timeline-tree {
+.tree {
   display: flex;
   flex-direction: column;
   border-left: 1px solid #FFFFFF !important;
@@ -470,11 +471,11 @@ body {
   gap: 16px;
 }
 
-.timeline-node {
+.node {
   position: relative;
 }
 
-.timeline-node-dot {
+.dot {
   position: absolute;
   left: -21px;
   top: 5px;
@@ -484,64 +485,64 @@ body {
   border: 1px solid #FFFFFF !important;
 }
 
-.timeline-node-content {
+.content {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   padding: 10px 12px;
 }
 
-.timeline-node-header {
+.header {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   margin-bottom: 4px;
 }
 
-.node-transition,
-.node-data,
-.node-comment,
-.node-admin-notes {
+.transition,
+.data,
+.comment,
+.notes {
   color: #FFFFFF !important;
   font-weight: normal !important;
 }
 
-.node-admin-notes {
+.notes {
   margin-top: 6px;
   border-top: 1px solid #FFFFFF !important;
   padding-top: 4px;
 }
 
-.drawer-admin-section {
+.section3 {
   border-top: 1px solid #FFFFFF !important;
   padding-top: 16px;
 }
 
-.admin-status-form {
+.form2 {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.form-group-row {
+.row2 {
   display: flex;
   gap: 12px;
 }
 
-.form-element {
+.element {
   display: flex;
   flex-direction: column;
   gap: 6px;
   flex-grow: 1;
 }
 
-.form-element label {
+.element label {
   font-size: 12px;
   color: #FFFFFF !important;
 }
 
-.form-element select,
-.form-element textarea,
-.form-element input {
+.element select,
+.element textarea,
+.element input {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -549,13 +550,13 @@ body {
   font-size: 14px;
 }
 
-.form-element select option {
+.element select option {
   background-color: #000000;
   color: #FFFFFF;
 }
 
-.admin-submit-btn,
-.form-submit-trigger {
+.btn3,
+.trigger2 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -565,13 +566,13 @@ body {
   margin-top: 4px;
 }
 
-.admin-submit-btn:hover,
-.form-submit-trigger:hover {
+.btn3:hover,
+.trigger2:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.admin-form-alert {
+.alert {
   padding: 8px 12px;
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
@@ -580,8 +581,8 @@ body {
   margin-top: 4px;
 }
 
-/* Ticket explorer view */
-.explorer-grid-layout {
+/*explore ticket*/
+.layout {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 24px;
@@ -589,7 +590,7 @@ body {
   min-height: 0;
 }
 
-.explorer-filters-panel {
+.panel {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   padding: 20px;
@@ -599,7 +600,7 @@ body {
   overflow-y: auto;
 }
 
-.filter-panel-header {
+.header2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -607,13 +608,13 @@ body {
   padding-bottom: 12px;
 }
 
-.filter-panel-header h3 {
+.header2 h3 {
   font-size: 14px;
   font-weight: normal !important;
   color: #FFFFFF !important;
 }
 
-.reset-filter-btn {
+.btn5 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -622,24 +623,24 @@ body {
   padding: 4px 8px;
 }
 
-.reset-filter-btn:hover {
+.btn5:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.filter-section {
+.section4 {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.filter-label {
+.label2 {
   font-size: 12px;
   color: #FFFFFF !important;
 }
 
-.filter-input-search,
-.filter-select {
+.search,
+.select {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -647,13 +648,13 @@ body {
   width: 100%;
 }
 
-.filter-checkbox-group {
+.group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.checkbox-item {
+.item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -662,7 +663,7 @@ body {
   cursor: pointer;
 }
 
-.explorer-results-dashboard {
+.dashboard {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -670,12 +671,12 @@ body {
   overflow-y: auto;
 }
 
-.results-metrics-bar {
+.bar2 {
   font-size: 14px;
   color: #FFFFFF !important;
 }
 
-.results-empty-state {
+.state {
   flex-grow: 1;
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
@@ -688,23 +689,23 @@ body {
   gap: 8px;
 }
 
-.empty-icon {
+.icon2 {
   font-size: 36px;
   color: #FFFFFF !important;
 }
 
-.results-empty-state h3,
-.results-empty-state p {
+.state h3,
+.state p {
   color: #FFFFFF !important;
 }
 
-.explorer-cards-grid {
+.grid2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-.explorer-card {
+.card5 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   padding: 16px;
@@ -714,18 +715,18 @@ body {
   cursor: pointer;
 }
 
-.card-header {
+.header6 {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.card-ticket-tag {
+.tag3 {
   font-size: 12px;
   color: #FFFFFF !important;
 }
 
-.card-priority-badge {
+.badge {
   font-size: 10px;
   padding: 2px 8px;
   border: 1px solid #FFFFFF !important;
@@ -733,13 +734,13 @@ body {
   background-color: #000000 !important;
 }
 
-.card-title {
+.title2 {
   font-size: 16px;
   color: #FFFFFF !important;
   font-weight: normal !important;
 }
 
-.card-description-clip {
+.clip {
   font-size: 14px;
   color: #FFFFFF !important;
   line-height: 1.5;
@@ -749,7 +750,7 @@ body {
   overflow: hidden;
 }
 
-.card-attributes {
+.attributes {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -757,20 +758,20 @@ body {
   padding-top: 10px;
 }
 
-.attr-item {
+.item3 {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   color: #FFFFFF !important;
 }
 
-.attr-label,
-.attr-value {
+.label4,
+.value2 {
   color: #FFFFFF !important;
   font-weight: normal !important;
 }
 
-.card-footer {
+.footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -779,13 +780,13 @@ body {
   padding-top: 10px;
 }
 
-.card-timestamp,
-.media-indicator {
+.timestamp,
+.indicator {
   font-size: 12px;
   color: #FFFFFF !important;
 }
 
-.card-upvote-btn {
+.btn6 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -794,13 +795,13 @@ body {
   cursor: pointer;
 }
 
-.card-upvote-btn:hover:not(:disabled) {
+.btn6:hover:not(:disabled) {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-/* INCIDENT CREATION FORM */
-.form-layout-box {
+/*incident report*/
+.box2 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   padding: 32px;
@@ -808,27 +809,27 @@ body {
   flex-grow: 1;
 }
 
-.form-group-grid {
+.grid4 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-.col-span-2 {
+.span2 {
   grid-column: span 2;
 }
 
-.element-label {
+.label {
   font-size: 14px;
   color: #FFFFFF !important;
   margin-bottom: 6px;
   display: block;
 }
 
-.incident-submit-form input[type="text"],
-.incident-submit-form input[type="number"],
-.incident-submit-form select,
-.incident-submit-form textarea {
+.form input[type="text"],
+.form input[type="number"],
+.form select,
+.form textarea {
   width: 100%;
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
@@ -837,23 +838,23 @@ body {
   font-size: 14px;
 }
 
-.error-message-tag,
-.input-hint,
-.character-counter {
+.tag,
+.hint,
+.counter2 {
   font-size: 12px;
   color: #FFFFFF !important;
   display: block;
   margin-top: 4px;
 }
 
-.coordinate-actions-ribbon {
+.ribbon {
   display: flex;
   gap: 12px;
   margin-top: -6px;
   margin-bottom: 6px;
 }
 
-.coordinate-utility-btn {
+.btn {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
@@ -862,20 +863,20 @@ body {
   cursor: pointer;
 }
 
-.coordinate-utility-btn:hover {
+.btn:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.textarea-counter-bar {
+.bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 4px;
 }
 
-/* Drag and Drop Zone Styling */
-.drag-upload-zone {
+
+.zone {
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
   padding: 32px;
@@ -883,13 +884,13 @@ body {
   cursor: pointer;
 }
 
-.upload-icon,
-.drag-upload-zone h4,
-.drag-upload-zone p {
+.icon,
+.zone h4,
+.zone p {
   color: #FFFFFF !important;
 }
 
-.uploaded-files-carousel {
+.carousel {
   display: flex;
   gap: 12px;
   margin-top: 16px;
@@ -897,7 +898,7 @@ body {
   padding-bottom: 8px;
 }
 
-.evidence-preview-card {
+.card {
   width: 130px;
   border: 1px solid #FFFFFF !important;
   background-color: #000000 !important;
@@ -905,25 +906,25 @@ body {
   flex-shrink: 0;
 }
 
-.evidence-preview-card img {
+.card img {
   width: 100%;
   height: 80px;
   object-fit: cover;
   filter: grayscale(100%);
 }
 
-.preview-meta {
+.meta {
   padding: 6px;
   display: flex;
   flex-direction: column;
 }
 
-.preview-filename,
-.preview-size {
+.filename,
+.size {
   color: #FFFFFF !important;
 }
 
-.remove-preview-btn {
+.btn2 {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -938,12 +939,12 @@ body {
   justify-content: center;
 }
 
-.remove-preview-btn:hover {
+.btn2:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-.form-submit-row {
+.row {
   margin-top: 32px;
   border-top: 1px solid #FFFFFF !important;
   padding-top: 24px;
@@ -951,15 +952,15 @@ body {
   justify-content: flex-end;
 }
 
-/* ANALYTICS VIEW */
-.analytics-dashboard-grid {
+/*analytical virew*/
+.grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 
-.count-metric-card,
-.analytics-plot-card {
+.card4,
+.card2 {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   padding: 24px;
@@ -968,21 +969,21 @@ body {
   gap: 16px;
 }
 
-.count-metric-card h3,
-.metric-number,
-.metric-subtext,
-.analytics-plot-card h3 {
+.card4 h3,
+.number,
+.subtext,
+.card2 h3 {
   color: #FFFFFF !important;
 }
 
-.plot-canvas {
+.canvas {
   flex-grow: 1;
   min-height: 180px;
   display: flex;
   align-items: flex-end;
 }
 
-.plot-canvas-center {
+.center {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -991,12 +992,12 @@ body {
   gap: 16px;
 }
 
-.plot-svg {
+.svg {
   width: 100%;
   height: 100%;
 }
 
-.pie-legend {
+.legend {
   display: flex;
   justify-content: center;
   gap: 16px;
@@ -1004,21 +1005,21 @@ body {
   color: #FFFFFF !important;
 }
 
-.legend-item {
+.item2 {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.legend-dot {
+.dot3 {
   width: 10px;
   height: 10px;
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
 }
 
-/* TOAST MESSAGE BANNER */
-.global-toast-banner {
+/*message baner*/
+.banner {
   position: fixed;
   top: 24px;
   left: 50%;
@@ -1032,7 +1033,7 @@ body {
   z-index: 1000;
 }
 
-.toast-icon {
+.icon3 {
   width: 24px;
   height: 24px;
   display: flex;
@@ -1043,12 +1044,12 @@ body {
   color: #FFFFFF !important;
 }
 
-.toast-message,
-.toast-close {
+.message,
+.close {
   color: #FFFFFF !important;
 }
 
-.toast-close {
+.close {
   background: transparent !important;
   border: 1px solid #FFFFFF !important;
   padding: 4px 8px;
@@ -1056,18 +1057,18 @@ body {
   margin-left: 8px;
 }
 
-.toast-close:hover {
+.close:hover {
   background-color: #FFFFFF !important;
   color: #000000 !important;
 }
 
-/* RESPONSIVE ADJUSTMENTS */
+/*responsiveness*/
 @media(max-width: 1024px) {
-  .app-container {
+  .container2 {
     flex-direction: column;
   }
 
-  .diagnostic-sidebar {
+  .sidebar {
     width: 100%;
     height: auto;
     border-right: none !important;
@@ -1075,33 +1076,33 @@ body {
     padding: 16px;
   }
 
-  .sidebar-nav {
+  .nav {
     flex-direction: row;
     overflow-x: auto;
   }
 
-  .nav-item {
+  .item4 {
     padding: 8px 12px;
     white-space: nowrap;
   }
 
-  .diagnostic-monitor {
+  .monitor {
     display: none;
   }
 
-  .explorer-grid-layout {
+  .layout {
     grid-template-columns: 1fr;
   }
 
-  .form-group-grid {
+  .grid4 {
     grid-template-columns: 1fr;
   }
 
-  .col-span-2 {
+  .span2 {
     grid-column: span 1;
   }
 
-  .map-side-drawer-overlay {
+  .overlay {
     width: calc(100% - 32px);
     right: 16px;
     left: 16px;
@@ -1110,12 +1111,12 @@ body {
     height: 60%;
   }
 
-  .analytics-dashboard-grid {
+  .grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-/* Ensure no inline SVG styles from React override our pitch black design */
+
 svg * {
   fill: transparent;
   stroke: #FFFFFF !important;
@@ -1127,7 +1128,7 @@ svg [fill="rgba(34, 197, 94, 0.3)"] {
   fill: #FFFFFF !important;
 }
 
-/* Text elements inside SVG should be white */
+
 svg text {
   fill: #FFFFFF !important;
   stroke: none !important;
@@ -1147,13 +1148,16 @@ button:hover {
   color: #000000 !important;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   background-color: #000000 !important;
   border: 1px solid #FFFFFF !important;
   color: #FFFFFF !important;
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #FFFFFF !important;
   opacity: 1 !important;
 }
