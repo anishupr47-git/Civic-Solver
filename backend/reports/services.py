@@ -10,7 +10,7 @@ logger = logging.getLogger('reports')
 
 class NotificationService:
     """
-    Decoupled notification dispatch platform for sending cellular SMS notifications,
+    Made notification platform for sending  SMS notifications,
     municipal email dispatches, and event based web-hooking
     """
     @staticmethod
@@ -22,7 +22,7 @@ class NotificationService:
             f"[NOTIFICATION SERVICE] Processing dispatch alerts for Issue {report.ticket_number} (Priority: {priority})"
         )
 
-        #1 Mock Dispatching Cellular Webhook
+        #1 Mock Dispatching  Webhook
         payload = {
             "ticket_number": report.ticket_number,
             "priority": priority,
@@ -52,7 +52,7 @@ class NotificationService:
 
 class ReportProcessingService:
     """
-    Core business processor oerchestrating transactional safety validations, geospatial bounding controls.
+    Core business processor making transactional safety validations, geospatial bounding controls.
     """
     #Bounding paramteres for our mock city "Metropolis"
     METROPOLIS_BOUNDS = {

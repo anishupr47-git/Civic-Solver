@@ -7,7 +7,7 @@ logger = logging.getLogger('reports')
 
 class CategorySerializer(serializers.ModelSerializer):
     """
-    Serializer mapping Category schema properties, supporting full read/write operations.
+    supporting read write operations
     """
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     assignment_group_display = serializers.CharField(source='get_assignment_group_display', read_only = True)
@@ -27,7 +27,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class MediaAttachmentSerializer(serializers.ModelSerializer):
     """
-    Serializer mapping physical citizen media evidence file uploads, generating absolute URL fields for clear consumptiom on frontend web apps
+    serializer for mediaattachmentserializersss
     """
     absolute_url = serializers.SerializerMethodField()
 
@@ -53,7 +53,7 @@ class MediaAttachmentSerializer(serializers.ModelSerializer):
     
 class StatusUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer tracking ticket transitions and historical status changes.
+    for ticket and transition and also status check
     """
     previous_status_display = serializers.CharField(source='get_previous_status_display', read_only=True)
     new_status_display = serializers.CharField(source='get_new_status_display', read_only=True)
@@ -75,7 +75,7 @@ class StatusUpdateSerializer(serializers.ModelSerializer):
 
 class IssueReportSerializer(serializers.ModelSerializer):
     """
-    Highly structured IssueReport serializer mapping relational objects for nested view and ticket registration endpoints (POST)
+    issue report and submit report
     """
     category_detail = CategorySerializer(source='category', read_only=True)
     media_attachments = MediaAttachmentSerializer(many=True, read_only=True)
@@ -125,7 +125,7 @@ class IssueReportSerializer(serializers.ModelSerializer):
         return "Anonymous Citizen"
     
     def validate_title(self, value):
-        """Ensures report tile compiles with municipal criteria"""
+        """Ensures report tile  with municipal criteria"""
         trimmed = value.strip()
         if len(trimmed) < 5:
             logger.warning(f"Validation failure on report title: '{trimmed}' too short")
@@ -143,7 +143,7 @@ class IssueReportSerializer(serializers.ModelSerializer):
         return trimmed
         
     def validate_description(self, value):
-        """Ensures report description contains descriptive information for investigators"""
+        """validate description"""
         trimmed = value.strip()
         if len(trimmed) < 15:
             logger.warning(f"Validation failure on description length: '{trimmed}' too short")

@@ -7,9 +7,9 @@ from django.core.exceptions import ValidationError
 # Create your models here.
 
 class Category(models.Model):
+    
     """
-    Categorization systems for civic issues, containing structural mappings,
-    prorities, and municipal assignment destinations.
+    Creating models for civic issues and mapping and priorities
     """
     PRIORITY_CHOICES = [
         ('Low', 'Low Priority'),
@@ -100,7 +100,7 @@ class IssueReport(models.Model):
 
 class StatusUpdate(models.Model):
     """
-    Historical audit logs tracking ticket transitions with all internal features
+    Historical  logs tracking ticket transitions with all features
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4,editable=False)

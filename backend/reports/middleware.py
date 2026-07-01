@@ -60,7 +60,7 @@ class RateLimitAndAnonymizationMiddleware:
             if signature not in log_dict:
                 log_dict[signature] = []
 
-            #Prune old logs outside the current window
+            # old logs outside the current window
             log_dict[signature] = [t for t in log_dict[signature] if t > cutoff]
 
             history = log_dict[signature]

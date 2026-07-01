@@ -162,7 +162,7 @@ class IssueReportDetailAPIView(APIView):
     
     def patch(self, request, pk, *args, **kwargs):
         """
-        Allows administrative transitions for status, adding corresponding notes an logs
+        Allows administrative transitions for status
         """
         logger.info(f"IssueReportDetailAPIView PATCH - Modifying status parameters for ticket ID {pk}")
         report = get_object_or_404(IssueReport, pk=pk)
@@ -216,7 +216,7 @@ class IssueReportDetailAPIView(APIView):
     
 class IssueReportUpvoteAPIView(APIView):
     """
-    API endpoint securely incrementing citizen validation upvote counts for specific issues.
+    API endpoint securely increasing citizen validation upvote counts for specific issues
     """
     def post(self, request, pk, *args, **kwargs):
         logger.info(f"IssueReportUpvoteAPIView POST - Adding citizen upvote for ticket ID {pk}")
