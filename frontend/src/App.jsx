@@ -138,7 +138,7 @@ export default function App() {
       const fetechedReports = await apiCall('/api/reports/');
       setCategories(fetchedCats);
       setReports(fetechedReports);
-      triggerNotification('success', 'Civic database loaded successfully from municipal grid');
+      triggerNotification('success', 'Database loaded nicely checked proceed G!');
     } catch (err) {
       console.error("Initial load failure:", err);
       triggerNotification('error', 'Database connection offline. Retrying Connection...');
@@ -195,7 +195,7 @@ export default function App() {
     e.preventDefault();
     if (!selectedReport) return;
     if (!adminTransition.status){
-      setAdminMessage({type:'error', text: 'Select a target transition state'});
+      setAdminMessage({type:'error', text: 'Select a target state'});
       return;
     }
 
@@ -213,7 +213,7 @@ export default function App() {
 
       setTimeout(()=> setAdminMessage(null), 4000);
     } catch (err) {
-      const msg = err.data?.error || 'Transition denied by municipal security bounds';
+      const msg = err.data?.error || 'Transition denied by security problems';
       setAdminMessage({type:'error', text: msg});
     }
   };
@@ -225,7 +225,7 @@ export default function App() {
     //frontend check while api
     const errors = {};
     if (!form.title.trim() || form.title.trim().length<5) {
-      errors.title = "Summary title is required (at least 5 characters";
+      errors.title = "Summary title is required (at least 5 characters)";
     }
     if (!form.description.trim()||form.description.trim().length<15){
       errors.description = "Provide detailed description of the incident (atleast 15 characters)";
@@ -618,7 +618,7 @@ export default function App() {
             <div className="panel-header">
               <div>
                 <h1>City Coordinate Grid</h1>
-                <p>Topological interactive space. Using highlights show active safety overrides. Click Map to grab coordinate points</p>
+                <p>Interactive State. Click Map To Grab And Submit Issue And Choose Required Issue</p>
               </div>
               <div className="map-toolbar">
                 <button className="control-btn" onClick={() => handleMapZoom(0.25)} title="Zoom In">+</button>
