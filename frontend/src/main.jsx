@@ -8,23 +8,5 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
-hfg
-fgkj
-jfgkd
-dfkg
-dkfjg
-fjg
-fjg
-jg
-gj
-g g g g g g g g g g 
-f 
-f 
- f
- f
- f
- f
 
-f 
-f
  
