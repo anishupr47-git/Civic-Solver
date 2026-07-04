@@ -1452,7 +1452,7 @@ export default function App() {
               </div>
 
               <div className="an-plot">
-                <h3>Issues by urgency</h3>
+                <h3>Issues by requirement</h3>
                 <div className="plt-list">
                   {["High", "Medium", "Low"].map(function (urg) {
                     let count = reps.filter(function (r) {
