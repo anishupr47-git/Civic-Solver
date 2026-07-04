@@ -6,9 +6,7 @@ from .models import Category, IssueReport, StatusUpdate, MediaAttachment
 logger = logging.getLogger('reports')
 
 class CategorySerializer(serializers.ModelSerializer):
-    """
-    supporting read write operations
-    """
+    """Category serializer"""
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     assignment_group_display = serializers.CharField(source='get_assignment_group_display', read_only = True)
 
@@ -26,9 +24,7 @@ class CategorySerializer(serializers.ModelSerializer):
         ]
 
 class MediaAttachmentSerializer(serializers.ModelSerializer):
-    """
-    serializer for mediaattachmentserializersss
-    """
+    """Media serializer"""
     absolute_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -43,7 +39,7 @@ class MediaAttachmentSerializer(serializers.ModelSerializer):
         ]
 
     def get_absolute_url(self, obj):
-        """Builds and returns fully qualified absolute target URLs for attachments"""
+        """Get absolute path to picture"""
         request = self.context.get('request')
         if obj.file_path:
             if request is not None:
@@ -52,9 +48,7 @@ class MediaAttachmentSerializer(serializers.ModelSerializer):
         return None
     
 class StatusUpdateSerializer(serializers.ModelSerializer):
-    """
-    for ticket and transition and also status check
-    """
+    """Log serializer"""
     previous_status_display = serializers.CharField(source='get_previous_status_display', read_only=True)
     new_status_display = serializers.CharField(source='get_new_status_display', read_only=True)
 
@@ -74,9 +68,7 @@ class StatusUpdateSerializer(serializers.ModelSerializer):
 
 
 class IssueReportSerializer(serializers.ModelSerializer):
-    """
-    issue report and submit report
-    """
+    """Report serializer"""
     category_detail = CategorySerializer(source='category', read_only=True)
     media_attachments = MediaAttachmentSerializer(many=True, read_only=True)
     history_logs = StatusUpdateSerializer(many=True, read_only=True)
@@ -119,52 +111,49 @@ class IssueReportSerializer(serializers.ModelSerializer):
         ]
 
     def get_reporter_username(self,obj):
-        """Displays reporter name is registered"""
+        """Get username"""
         if obj.reported_by:
             return obj.reported_by.username
-        return "Anonymous Citizen"
+        return "Anonymous citizen"
     
     def validate_title(self, value):
-        """Ensures report tile  with municipal criteria"""
+        """Check title"""
         trimmed = value.strip()
         if len(trimmed) < 5:
-            logger.warning(f"Validation failure on report title: '{trimmed}' too short")
-            raise serializers.ValidationError("Issue title must be atleast 5 character long")
+            logger.warning("Title is too short")
+            raise serializers.ValidationError("Title must be five characters or more")
         if len(trimmed) > 150:
-            logger.warning(f"Validation failure on report title: exceeds 150 characters")
-            raise serializers.ValidationError("Issue title cannot exceed 150 characters")
+            logger.warning("Title is too long")
+            raise serializers.ValidationError("Title cannot exceed one hundred fifty characters")
         
-        #Simple spam word filters
+        # Check spam words
         spam_words = ["testtest", "spamspam", "asdfasdf", "junkstuff"]
         for spam in spam_words:
             if spam in trimmed.lower():
-                logger.warning(f"Potential spam detected in title: {trimmed}")
-                raise serializers.ValidationError("Title contains spam content")
+                logger.warning("Spam found in title")
+                raise serializers.ValidationError("Title has spam words")
         return trimmed
         
     def validate_description(self, value):
-        """validate description"""
+        """Check description"""
         trimmed = value.strip()
         if len(trimmed) < 15:
-            logger.warning(f"Validation failure on description length: '{trimmed}' too short")
-            raise serializers.ValidationError("Description must contain at least 15 characters of diagnostic details")
+            logger.warning("Description too short")
+            raise serializers.ValidationError("Description must be fifteen characters or more")
         return trimmed
     
     def validate(self, data):
-        """
-        Validate coordinate points and cross-check
-        """
-
+        """Check coordinates"""
         lat = data.get('latitude')
         lon = data.get('longitude')
 
         if lat is not None and not (-90.0 <= lat <= 90.0):
             raise serializers.ValidationError({
-                "latitude": "Latitude coordinates must reside within [-90.0, 90.0]"
+                "latitude": "Latitude must be between minus ninety and ninety"
             })
         if lon is not None and not (-180.0 <= lon <= 180.0):
             raise serializers.ValidationError({
-                "longitude": "Longitude coordinates must reside within [-180.0, 180.0]"
+                "longitude": "Longitude must be between minus one hundred eighty and one hundred eighty"
             })
         
         return data

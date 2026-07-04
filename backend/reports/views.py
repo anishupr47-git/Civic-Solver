@@ -11,29 +11,23 @@ from .models import Category, IssueReport, StatusUpdate
 from .serializers import CategorySerializer, IssueReportSerializer, StatusUpdateSerializer
 from .services import ReportProcessingService, NotificationService
 logger = logging.getLogger('reports')
-# Create your views here.
 
 
 class CategoryListAPIView(APIView):
-    """
-    API endpoint listing all available civic classification categories.
-    Used by frontend clients
-    """
+    """Categories list API view"""
     def get(self, request, *args, **kwargs):
-        logger.info("CategoryListAPIView - Fetching list of all civic categories")
+        logger.info("Getting categories")
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True, context={'request':request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class IssueReportListCreateAPIView(APIView):
-    """
-    API endpoint to list filtered issue reports (GET) and register new (POST)
-    """
+    """Reports list and create API view"""
     def get(self, request, *args, **kwargs):
-        logger.info("IssueReportListCreateAPIView GET- Fetching filtered issue list")
+        logger.info("Getting reports")
         queryset = IssueReport.objects.all()
 
-        #1. Bounding Box Geospatial Filter
+        # Filter bounds
         lat_min = request.query_params.get('lat_min')
         lat_max = request.query_params.get('lat_max')
         lon_min = request.query_params.get('lon_min')
@@ -45,40 +39,40 @@ class IssueReportListCreateAPIView(APIView):
                     latitude__range=(float(lat_min), float(lat_max)),
                     longitude__range=(float(lon_min), float(lon_max))
                 )
-                logger.debug(f"Applied spatial box query: Lat[{lat_min}, {lat_max}], Lon[{lon_min}, {lon_max}]")
+                logger.debug("Filter bounds applied")
             except ValueError:
-                logger.error("Spatial coordinate filter parameters are not valid floats.")
+                logger.error("Invalid coordinates")
                 return Response(
-                    {"error": "Spatial bounding values must be numeric float coordinates."},
+                    {"error": "We need numbers for coordinates"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        #2 Remediation status filtering
+        # Filter status
         status_param = request.query_params.get('status')
         if status_param:
             status_list = [s.strip() for s in status_param.split(',')]
             queryset = queryset.filter(status__in=status_list)
-            logger.debug(f"Applied status filters: {status_list}")
+            logger.debug("Filter status applied")
 
-        #3 Category system slug filtering
+        # Filter category
         category_slug= request.query_params.get('category')
         if category_slug:
             queryset = queryset.filter(category__system_slug=category_slug)
-            logger.debug(f"Applied category filter: {category_slug}")
+            logger.debug("Filter category applied")
 
-        #4 Priority Tier Filtering
+        # Filter priority
         priority_param = request.query_params.get('priority')
         if priority_param:
             queryset = queryset.filter(category__priority=priority_param)
-            logger.debug(f"Applied category priority filter: {priority_param}")
+            logger.debug("Filter priority applied")
 
-        #5 Assignment group filtering
+        # Filter agency
         agency_param = request.query_params.get('agency')
         if agency_param:
             queryset = queryset.filter(category__assignment_group=agency_param)
-            logger.debug(f"Applied agency assignment group filter: {agency_param}")
+            logger.debug("Filter agency applied")
 
-        #6 Global Text Query Searching
+        # Search text
         search_query = request.query_params.get('search')
         if search_query:
             search_query= search_query.strip()
@@ -89,28 +83,28 @@ class IssueReportListCreateAPIView(APIView):
             ) | queryset.filter(
                 ticket_number__icontains=search_query
             )
-            logger.debug(f"Applied query text search parameter: '{search_query}'")
+            logger.debug("Search text applied")
         
-        #Serialize results and output
+        # Return serialized data
         serializer = IssueReportSerializer(queryset, many=True, context={'request':request})
         return Response(serializer.data, status=status.HTTP_200_OK)
         
     def post(self, request, *args, **kwargs):
-        logger.info("IssueReportListCreateAPIVIEW POST - Regestering new citizen civic incident")
+        logger.info("Creating report")
 
-        #EXTRACT ANOYMIZED HAS INJECTED BY MIDDLEWARE
+        # Get anonymous hash
         anonymous_hash = request.META.get('ANONYMOUS_REPORTER_HASH', 'unknown_signature_hash')
 
-        #WE EXTRACT FILES IF MULTIPART FROM UPLOAD WAS TRIGGERED
+        # Get files
         files = request.FILES.getlist('files')
 
-        # Leverage standard serializer validator for input scrubbing
+        # Validate data
         serializer = IssueReportSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
-            logger.warning(f"Validation failures on submission data: {serializer.errors}")
+            logger.warning("Data validation failed")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        # DELEGATE VALIDATION, DUPLIACE MATCHING OVERIDE AND DB COMMITS TO SERVICES
+        # Process data
         validated_data = serializer.validated_data
 
         try:
@@ -125,63 +119,59 @@ class IssueReportListCreateAPIView(APIView):
                 reported_by=request.user if request.user.is_authenticated else None
             )
         except DjangoValidationError as exc:
-            logger.warning(f"Business constraint validation failure: {exc.message}")
+            logger.warning("Validation failed")
             return Response({"error": exc.message}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as err:
-            logger.exception(f"Unexpected crash in processing service pipelines: {err}")
+            logger.exception("Unexpected error")
             return Response(
-                {"error": "Municipal pipeline encountered an unrecoverable system exception"},
+                {"error": "System error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-        #Build output payload
+        # Return data
         output_serializer = IssueReportSerializer(report_instance, context={'request':request})
 
         if is_duplicate:
-            #Duplicate successfully
-            logger.info(f"Report identified as duplicate. Response linked to {report_instance}")
+            # Handle duplicate
+            logger.info("Duplicate report found")
             return Response({
                 "duplicate_matched": True,
                 "ticket_number": report_instance.ticket_number,
-                "message": f"An active report already covers this coordinate space within 48 hours. Ticket {report_instance.ticket_number} upvote instead",
+                "message": f"We already have a report for this place and we added your vote to ticket {report_instance.ticket_number}",
 
             }, status= status.HTTP_200_OK)
         
-        logger.info(f"Unique report registered successfully. Ticket: {report_instance.ticket_number}")
+        logger.info("Report created")
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
 class IssueReportDetailAPIView(APIView):
-    """
-    API endpoint handling targeted retrievals, details (GET) and administrative state mutations (PATCH) for individual ticket objects
-    """
+    """Report detail API view"""
     def get(self, request, pk, *args, **kwargs):
-        logger.info(f"IssueReportDetailAPIView GET - FETCHING details for ticket ID {pk}")
+        logger.info("Getting report detail")
         report = get_object_or_404(IssueReport, pk=pk)
         serializer = IssueReportSerializer(report, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def patch(self, request, pk, *args, **kwargs):
-        """
-        Allows administrative transitions for status
-        """
-        logger.info(f"IssueReportDetailAPIView PATCH - Modifying status parameters for ticket ID {pk}")
+        """Update report status"""
+        logger.info("Updating report status")
         report = get_object_or_404(IssueReport, pk=pk)
 
-        #Parse request payload keys
+        # Get params
         new_status = request.data.get('status')
         comment = request.data.get('comment', '').strip()
         admin_notes = request.data.get('administrative_notes','').strip()
 
         if not new_status:
             return Response(
-                {"error": "Transition require a valid target 'status' field"},
+                {"error": "Please tell us what the status is"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         valid_statuses = [choice[0] for choice in IssueReport.STATUS_CHOICES]
         if new_status not in valid_statuses:
             return Response(
-                {"error": f"Invalid status selection. Choose from: {valid_statuses}"},
+                {"error": "Please choose a status from the list"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -192,41 +182,37 @@ class IssueReportDetailAPIView(APIView):
                 status=status.HTTP_200_OK
             )
         
-        #Process modification transactional boundary
+        # Save status
         with transaction.atomic():
             locked_report = IssueReport.objects.select_for_update().get(pk=report.pk)
             locked_report.status=new_status
             locked_report.save(update_fields=['status', 'updated_at'])
 
-        #Log audit record
+        # Log transitions
         status_update = StatusUpdate.objects.create(
             report=locked_report,
             previous_status=previous_status,
             new_status=new_status,
-            comment=comment or f"Municipal status transition: {previous_status} -> {new_status}",
-            administrative_notes=admin_notes or "Administrative state change logged"
+            comment=comment or f"We changed the status",
+            administrative_notes=admin_notes or "Admin changed the status"
 
         )
-        logger.info(
-            f"[TRANSITION] Incident {locked_report.ticket_number} moved from {previous_status} to {new_status}"
-        )
-        #Reserialize full ticket output
+        logger.info("Status updated")
+        # Return detail
         serializer = IssueReportSerializer(locked_report, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class IssueReportUpvoteAPIView(APIView):
-    """
-    API endpoint securely increasing citizen validation upvote counts for specific issues
-    """
+    """Report upvote API view"""
     def post(self, request, pk, *args, **kwargs):
-        logger.info(f"IssueReportUpvoteAPIView POST - Adding citizen upvote for ticket ID {pk}")
+        logger.info("Upvoting report")
         report = get_object_or_404(IssueReport, pk=pk)
 
-        #Ensure tickets cannot be upvoted if already closed/resolved
+        # Check if closed
         if report.status in ['Resolved', 'Rejected']:
-            logger.warning(f"Attempted to upvote closed/archived ticket {report.ticket_number}")
+            logger.warning("Attempted to upvote closed report")
             return Response(
-                {"error": "Upvotes cannot be applied to tickets that are Resolved or Rejected"},
+                {"error": "We cannot add votes to closed reports"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -235,15 +221,15 @@ class IssueReportUpvoteAPIView(APIView):
             locked_report.upvote_count +=1
             locked_report.save(update_fields=['upvote_count', 'updated_at'])
 
-            #Add status audit history item
+            # Add log record
             StatusUpdate.objects.create(
                 report=locked_report,
                 previous_status=locked_report.status,
                 new_status=locked_report.status,
-                comment="A citizen validated and upvoted this reported issue",
-                administrative_notes="Upvote API endpoint invoked successfully"
+                comment="Another citizen added a vote to this report",
+                administrative_notes="One vote added"
             )
-            logger.info(f"[UPVOTED] Ticket {locked_report.ticket_number} reached {locked_report.upvote_count} upvotes")
+            logger.info("Upvote added")
 
         serializer = IssueReportSerializer(locked_report, context={'request':request})
         return Response(serializer.data, status=status.HTTP_200_OK)

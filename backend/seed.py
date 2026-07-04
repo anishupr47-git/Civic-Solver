@@ -31,39 +31,39 @@ def seed_database():
     # 2. Define standard high-fidelity categories
     categories_data = [
         {
-            "name": "Potholes & Road Damage",
+            "name": "Road holes",
             "system_slug": "potholes-road-damage",
             "priority": "Medium",
             "assignment_group": "Public Works",
-            "description": "Report street issues including active potholes, severe cracks, broken curbstones, and buckled sidewalk flags."
+            "description": "Tell us about bad streets and holes"
         },
         {
-            "name": "Animal Control Services",
+            "name": "Animal help",
             "system_slug": "animal-control",
             "priority": "Low",
             "assignment_group": "Animal Control",
-            "description": "Report animal-related issues including loose aggressive strays, deceased wildlife, or domestic noise disturbances."
+            "description": "Tell us about wild animals or loud pets"
         },
         {
-            "name": "Traffic Signals & Markings",
+            "name": "Street lights",
             "system_slug": "traffic-signals",
             "priority": "High",
             "assignment_group": "Traffic Safety",
-            "description": "Report malfunctioning traffic signals, obscured critical stop signs, broken street lights, or faded crosswalks."
+            "description": "Tell us if street lights or stop signs are broken"
         },
         {
-            "name": "Sanitation & Trash Collection",
+            "name": "Street trash",
             "system_slug": "sanitation-trash",
             "priority": "Medium",
             "assignment_group": "Sanitation",
-            "description": "Report illegal trash dumps, missed municipal collection zones, overflowing public trash bins, or street sweeps."
+            "description": "Tell us if there is dirty trash on the street"
         },
         {
-            "name": "Hazardous Gas & Power Outages",
+            "name": "Gas and wires",
             "system_slug": "hazardous-hazards",
             "priority": "High",
             "assignment_group": "Public Works",
-            "description": "Report critical safety issues including gas odors, low-hanging downed wires, or active sparking transformers."
+            "description": "Tell us if you smell gas or see fire on wires"
         }
     ]
 

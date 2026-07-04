@@ -1,7 +1,6 @@
-import React, {useState,useEffect,useRef, act} from "react";
-import './APP.css';
+import React, { useState, useEffect, useRef } from "react";
+import './App.css';
 
-//check longitude and latitude
 const LAT_MIN = 40.7000;
 const LAT_MAX = 40.8500;
 const LON_MIN = -74.0500;
@@ -9,641 +8,724 @@ const LON_MAX = -73.8500;
 const MAP_WIDTH = 800;
 const MAP_HEIGHT = 500;
 
-function projectCoords(lat,lon){
-  const x = ((lon-LON_MIN)/(LON_MAX - LON_MIN)) * MAP_WIDTH;
-  const y = (1-((lat - LAT_MIN) / (LAT_MAX - LAT_MIN))) * MAP_HEIGHT;
-  return {x,y};
+function getX(lon) {
+  return ((lon - LON_MIN) / (LON_MAX - LON_MIN)) * MAP_WIDTH;
 }
 
-function deprojectCoords(x,y) {
-  const lon = LON_MIN + (x/MAP_WIDTH) * (LON_MAX - LON_MIN);
-  const lat = LAT_MAX + (1-(y / MAP_HEIGHT)) * (LAT_MAX - LAT_MIN);
-  return { lat: parseFloat(lat.toFixed(6)), lon: parseFloat(lon.toFixed(6))};
+function getY(lat) {
+  return (1 - ((lat - LAT_MIN) / (LAT_MAX - LAT_MIN))) * MAP_HEIGHT;
+}
+
+function deprojectCoords(x, y) {
+  let lon = LON_MIN + (x / MAP_WIDTH) * (LON_MAX - LON_MIN);
+  let lat = LAT_MAX + (1 - (y / MAP_HEIGHT)) * (LAT_MAX - LAT_MIN);
+  return {
+    lat: parseFloat(lat.toFixed(6)),
+    lon: parseFloat(lon.toFixed(6))
+  };
+}
+
+function cleanTicket(t) {
+  if (!t) return "";
+  let parts = t.split("-");
+  if (parts.length === 3) {
+    let num = parseInt(parts[2], 10);
+    if (!isNaN(num)) {
+      return "" + num;
+    }
+  }
+  return t;
+}
+
+function cleanText(text) {
+  if (text === null || text === undefined) {
+    return "";
+  }
+  let s = "" + text;
+  s = s.replace("&", "and");
+
+  let clean = "";
+  for (let i = 0; i < s.length; i++) {
+    let c = s[i];
+    let isLetter = (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
+    let isNumber = c >= "0" && c <= "9";
+    if (isLetter || isNumber || c === " ") {
+      clean = clean + c;
+    }
+  }
+
+  clean = clean.trim();
+  if (clean.length === 0) {
+    return "";
+  }
+  let first = clean[0].toUpperCase();
+  let rest = clean.substring(1).toLowerCase();
+  return first + rest;
 }
 
 export default function App() {
-  //system arch
-  const [activeTab,setActiveTab] = useState('dashboard_map');
-  const [reports,setReports] = useState([]);
-  const [categories,setCategories] = useState([]);
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [tab, setTab] = useState("dashboard_map");
+  const [reps, setReps] = useState([]);
+  const [cats, setCats] = useState([]);
+  const [sel, setSel] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  //rate limits
-  const [rateLimit,setRateLimit] = useState ({remaining:'100', reset:'0'});
-  const [clientSignature, setClientSignature] = useState('Computing security token...');
-  const [isAnonymized, setIsAnonymized] = useState(true);
-  const [connectionStatus,setConnectionStatus] = useState('connected');
-  const [latencyMs, setLatencyMs] = useState(12);
+  const [rates, setRates] = useState({ remaining: "100", reset: "0" });
+  const [sig, setSig] = useState("Computing Security Token");
+  const [anon, setAnon] = useState(true);
+  const [conn, setConn] = useState("connected");
 
-  //filter
-  const [filters,setFilters] = useState({
-    search: '',
-    category: '',
+  const [fils, setFils] = useState({
+    search: "",
+    category: "",
     status: [],
-    priority: '',
-    agency: '',
+    priority: "",
+    agency: ""
   });
 
-  //submit ticket
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    category_id: '',
-    latitude: '',
-    longitude: '',
+  const [frm, setFrm] = useState({
+    title: "",
+    description: "",
+    category_id: "",
+    latitude: "",
+    longitude: "",
     files: []
   });
 
-  const [formErrors, setFormErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errs, setErrs] = useState({});
+  const [subs, setSubs] = useState(false);
 
-  
-  const [adminTransition, setAdminTransition] = useState({
-    status: '',
-    comment: '',
-    administrative_notes: ''
+  const [trans, setTrans] = useState({
+    status: "",
+    comment: "",
+    administrative_notes: ""
   });
-  const [adminMessage, setAdminMessage] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [note, setNote] = useState(null);
 
- 
-  const [notification, setNotification] = useState(null);
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [drags, setDrags] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const [place, setPlace] = useState(null);
 
-  //check map
-  const [mapScale, setMapScale] = useState(1);
-  const [mapOffset, setMapOffset] = useState({x:0, y:0});
-  const [isDraggingMap, setIsDraggingMap] = useState(false);
-  const [dragStart, setDragStart] = useState({x:0,y:0});
-  const [mapPlacementCoords, setMapPlacementCoords] = useState(null);
+  const [over, setOver] = useState(false);
 
-  //drag drop for img
-  const [isDragOver, setIsDragOver] = useState(false);
-  const fileInputRef = useRef(null);
-  const mapSvgRef = useRef(null);
+  const fileref = useRef(null);
+  const svgref = useRef(null);
 
-  //api layers
-
- 
-  const apiCall = async (url , options = {}) => {
-    const startTime = performance.now();
+  async function loadData() {
+    setLoading(true);
     try {
-      const defaultHeaders = {
-        'Accept': 'application/json',
-      };
-      if (options.body && !(options.body instanceof FormData)) {
-        defaultHeaders['Content-Type'] = 'application/json';
+      let res1 = await fetch("/api/categories/");
+      let catsData = await res1.json();
+      setCats(catsData);
+
+      let res2 = await fetch("/api/reports/");
+      let repsData = await res2.json();
+      setReps(repsData);
+
+      let sigVal = res2.headers.get("sig");
+      let anonVal = res2.headers.get("anon");
+      let remVal = res2.headers.get("rem");
+      let rstVal = res2.headers.get("rst");
+
+      if (sigVal) setSig(sigVal);
+      if (anonVal) setAnon(anonVal === "True");
+      if (remVal && rstVal) {
+        setRates({ remaining: remVal, reset: rstVal });
       }
-
-      const mergedOptions = {
-        ...options,
-        headers: {
-          ...defaultHeaders,
-          ...options.header
-        }
-      };
-
-      const response = await fetch(url, mergedOptions);
-
-     
-      const endTime = performance.now();
-      setLatencyMs(Math.round(endTime-startTime));
-      setConnectionStatus('connected');
-
-     
-      const sig = response.headers.get('X-Client-Signature');
-      const anon = response.headers.get('X-Civic-Anonymized');
-      const rem = response.headers.get('X-Rate-Limit-Remaining');
-      const rst = response.headers.get('X-Rate-Limit-Reset');
-
-      if (sig) setClientSignature(sig);
-      if (anon) setIsAnonymized(anon==='True');
-      if (rem && rst) setRateLimit({ remaining: rem, reset: rst});
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(()=> ({}));
-        throw { status: response.status, data:errorData};
-      }
-
-      return await response.json();
-    } catch (error) {
-      setConnectionStatus('disconnected');
-      throw error;
-    }
-  };
-
-  const fetchInitialData = async () => {
-    setIsLoading(true);
-    try {
-      const fetchedCats = await apiCall('/api/categories/');
-      const fetechedReports = await apiCall('/api/reports/');
-      setCategories(fetchedCats);
-      setReports(fetechedReports);
-      triggerNotification('success', 'Database loaded nicely checked proceed G!');
+      setConn("connected");
     } catch (err) {
-      console.error("Initial load failure:", err);
-      triggerNotification('error', 'Database connection offline. Retrying Connection...');
+      setConn("disconnected");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchInitialData();
+  useEffect(function () {
+    loadData();
 
-    
-    const interval = setInterval(async ()=> {
+    let interval = setInterval(async function () {
       try {
-        const data = await apiCall('/api/reports/', {method: 'GET'});
-        setReports(data);
-      } catch(e) {
-        setConnectionStatus('disconnected');
-      }
-    },12000);
+        let res = await fetch("/api/reports/");
+        let data = await res.json();
+        setReps(data);
 
-    return () => clearInterval(interval);
+        let sigVal = res.headers.get("sig");
+        let anonVal = res.headers.get("anon");
+        let remVal = res.headers.get("rem");
+        let rstVal = res.headers.get("rst");
+
+        if (sigVal) setSig(sigVal);
+        if (anonVal) setAnon(anonVal === "True");
+        if (remVal && rstVal) {
+          setRates({ remaining: remVal, reset: rstVal });
+        }
+        setConn("connected");
+      } catch (e) {
+        setConn("disconnected");
+      }
+    }, 12000);
+
+    return function () {
+      clearInterval(interval);
+    };
   }, []);
 
-  const triggerNotification = (type, message) => {
-    setNotification({type, message});
-    setTimeout(() => {
-      setNotification(null);
+  function triggerNotification(type, message) {
+    setNote({ type: type, message: message });
+    setTimeout(function () {
+      setNote(null);
     }, 6000);
-  };
+  }
 
-  //vote up
-  const handleUpvote = async (reportId) => {
+  async function handleUpvote(reportId) {
     try {
-      const updatedReport = await apiCall(`/api/reports/${reportId}/upvote/`, {
-        method: 'POST'
+      let res = await fetch("/api/reports/" + reportId + "/upvote/", {
+        method: "POST"
       });
+      let updatedReport = await res.json();
 
-   
-      setReports(prev=> prev.map(r=>r.id===reportId? updatedReport: r));
-      if (selectedReport && selectedReport.id === reportId) {
-        setSelectedReport(updatedReport);
+      let newList = [];
+      for (let i = 0; i < reps.length; i++) {
+        if (reps[i].id === reportId) {
+          newList.push(updatedReport);
+        } else {
+          newList.push(reps[i]);
+        }
+      }
+      setReps(newList);
+
+      if (sel !== null && sel.id === reportId) {
+        setSel(updatedReport);
       }
 
-      triggerNotification('success', `Upvote recorded for ticket ${updatedReport.ticket_number}`);
+      let sigVal = res.headers.get("sig");
+      let remVal = res.headers.get("rem");
+      let rstVal = res.headers.get("rst");
+      if (sigVal) setSig(sigVal);
+      if (remVal && rstVal) setRates({ remaining: remVal, reset: rstVal });
     } catch (err) {
-      const msg = err.data?.error || 'Failed to submit upvote. Rate limit exceeded';
-      triggerNotification('error',msg);
     }
-  };
+  }
 
-
-  const handleStatusTransition = async (e) => {
+  async function handleStatusTransition(e) {
     e.preventDefault();
-    if (!selectedReport) return;
-    if (!adminTransition.status){
-      setAdminMessage({type:'error', text: 'Select a target state'});
+    if (sel === null) return;
+    if (trans.status === "") {
+      setMsg({ type: "error", text: "Please select a state first" });
       return;
     }
 
     try {
-      const updated = await apiCall(`/api/reports/${selectedReport.id}/`, {
-        method: 'PATCH',
-        body: JSON.stringify(adminTransition)
+      let res = await fetch("/api/reports/" + sel.id + "/", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(trans)
       });
 
-      setReports(prev=>prev.map(r=>r.id===selectedReport.id? updated:r));
-      setSelectedReport(updated);
-      setAdminTransition({status: '', comment:'', administrative_notes:''});
-      setAdminMessage({type:'success',text:`Ticket successfully transitioned to [${updated.status_display}]`});
-      triggerNotification('success',`Ticket ${updated.ticket_number} transitioned successfully`);
+      let updated = await res.json();
 
-      setTimeout(()=> setAdminMessage(null), 4000);
+      let newList = [];
+      for (let i = 0; i < reps.length; i++) {
+        if (reps[i].id === sel.id) {
+          newList.push(updated);
+        } else {
+          newList.push(reps[i]);
+        }
+      }
+      setReps(newList);
+      setSel(updated);
+      setTrans({ status: "", comment: "", administrative_notes: "" });
+      setMsg({ type: "success", text: "We changed the status" });
+
+      let sigVal = res.headers.get("sig");
+      let remVal = res.headers.get("rem");
+      let rstVal = res.headers.get("rst");
+      if (sigVal) setSig(sigVal);
+      if (remVal && rstVal) setRates({ remaining: remVal, reset: rstVal });
+
+      setTimeout(function () {
+        setMsg(null);
+      }, 4000);
     } catch (err) {
-      const msg = err.data?.error || 'Transition denied by security problems';
-      setAdminMessage({type:'error', text: msg});
+      setMsg({ type: "error", text: "We cannot change the status now" });
     }
-  };
+  }
 
-  //submit
-  const handleFormSubmit = async (e) => {
+  async function handleFormSubmit(e) {
     e.preventDefault();
 
-    //frontend check while api
-    const errors = {};
-    if (!form.title.trim() || form.title.trim().length<5) {
-      errors.title = "Summary title is required (at least 5 characters)";
+    let errors = {};
+    let formTitle = frm.title.trim();
+    let formDesc = frm.description.trim();
+
+    if (formTitle === "" || formTitle.length < 5) {
+      errors.title = "The title is too short";
     }
-    if (!form.description.trim()||form.description.trim().length<15){
-      errors.description = "Provide detailed description of the incident (atleast 15 characters)";
+    if (formDesc === "" || formDesc.length < 15) {
+      errors.description = "The description is too short";
     }
-    if (!form.category_id) {
-      errors.category_id = "Please pick a civic classification group";
+    if (frm.category_id === "") {
+      errors.category_id = "Please choose a category";
     }
 
-    const lat = parseFloat(form.latitude);
-    const lon = parseFloat(form.longitude);
+    let lat = parseFloat(frm.latitude);
+    let lon = parseFloat(frm.longitude);
 
-    if (isNaN(lat) || lat < LAT_MIN || lat > LAT_MAX) {
-      errors.latitude = `Latitude must be included inside area [${LAT_MIN}, ${LAT_MAX}]`;
-      errors.longitude = `Longitude must be included inside area [${LON_MIN}, ${LON_MAX}]`;
+    let isLatOk = !isNaN(lat) && lat >= LAT_MIN && lat <= LAT_MAX;
+    let isLonOk = !isNaN(lon) && lon >= LON_MIN && lon <= LON_MAX;
+
+    if (isLatOk === false || isLonOk === false) {
+      errors.latitude = "This place is too far";
+      errors.longitude = "This place is too far";
     }
 
-    if (Object.keys(errors).length > 0){
-      setFormErrors(errors);
-      triggerNotification('error', 'Form contains invalid parameters. Please review warnings');
+    if (Object.keys(errors).length > 0) {
+      setErrs(errors);
+      triggerNotification("error", "Please fix the problems in the form");
       return;
     }
 
-    setFormErrors({});
-    setIsSubmitting(true);
+    setErrs({});
+    setSubs(true);
 
     try {
-      
-      const payload = new FormData();
-      payload.append('title', form.title.trim());
-      payload.append('description', form.description.trim());
-      payload.append('category', form.category_id);
-      payload.append('latitude', lat.toString());
-      payload.append('longitude', lon.toString());
+      let payload = new FormData();
+      payload.append("title", formTitle);
+      payload.append("description", formDesc);
+      payload.append("category", frm.category_id);
+      payload.append("latitude", lat.toString());
+      payload.append("longitude", lon.toString());
 
-      form.files.forEach((file) => {
-        payload.append('files', file);
-      });
+      for (let i = 0; i < frm.files.length; i++) {
+        payload.append("files", frm.files[i]);
+      }
 
-      const response = await apiCall('/api/reports/', {
-        method: 'POST' ,
+      let res = await fetch("/api/reports/", {
+        method: "POST",
         body: payload
       });
 
+      let response = await res.json();
+
       if (response.duplicate_matched) {
-       
-        triggerNotification('info', response.message);
-        setReports(prev=>prev.map(r=>r.ticket_number === response.ticket_number ? response.data : r));
-        setSelectedReport(response.data);
-        setActiveTab('dashboard_map');
+        triggerNotification("info", response.message);
+        setSel(response.data);
       } else {
-       
-        triggerNotification('success', `Incident logged successfully! Ticket: ${response.ticket_number}`);
-        setReports(prev => [response, ...prev]);
-        setSelectedReport(response);
-        setActiveTab('dashboard_map');
+        triggerNotification("success", "We got your report successfully");
+        setSel(response);
       }
 
-      
-      setForm({
-        title:'',
-        description:'',
-        category_id:'',
-        latitude:'',
-        longitude:'',
+      // reload data
+      let resData = await fetch("/api/reports/");
+      let repsData = await resData.json();
+      setReps(repsData);
+
+      setFrm({
+        title: "",
+        description: "",
+        category_id: "",
+        latitude: "",
+        longitude: "",
         files: []
       });
-      setMapPlacementCoords(null);
+      setPlace(null);
+      setTab("dashboard_map");
     } catch (err) {
-      console.error(err);
-      const msg = err.data?.error || 'Pipeline creation failed. Check rates and coordinates';
-      triggerNotification('error',msg);
+      triggerNotification("error", "We could not save your report");
     } finally {
-      setIsSubmitting(false);
+      setSubs(false);
     }
-  };
+  }
 
-  
-  const triggerBrowserGeolocation = () => {
-    if (!navigator.geolocation) {
-      triggerNotification('error', 'Geoloaction is not supported by your browser ');
+  function triggerBrowserGeolocation() {
+    if (navigator.geolocation === undefined) {
       return;
     }
 
-    triggerNotification('info', 'Contacting GPS nodes');
-
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude,longitude } = pos.coords;
-       
+      function (pos) {
+        let latitude = pos.coords.latitude;
+        let longitude = pos.coords.longitude;
+
         if (latitude >= LAT_MIN && latitude <= LAT_MAX && longitude >= LON_MIN && longitude <= LON_MAX) {
-          setForm(prev => ({
-            ...prev,
+          setFrm({
+            title: frm.title,
+            description: frm.description,
+            category_id: frm.category_id,
             latitude: latitude.toFixed(6),
-            longitude: longitude.toFixed(6)
-          }));
-          setMapPlacementCoords({lat:latitude,lon:longitude});
-          triggerNotification('success', 'Municipal coordinates locked successfully');
+            longitude: longitude.toFixed(6),
+            files: frm.files
+          });
+          setPlace({ lat: latitude, lon: longitude });
         } else {
-          
-          
-          const mocklat = (LAT_MIN + (LAT_MAX - LAT_MIN) * 0.45).toFixed(6);
-          const mocklon = (LON_MIN + (LON_MAX - LON_MIN) * 0.55).toFixed(6);
-          setForm(prev => ({
-            ...prev,
+          let mocklat = (LAT_MIN + (LAT_MAX - LAT_MIN) * 0.45).toFixed(6);
+          let mocklon = (LON_MIN + (LON_MAX - LON_MIN) * 0.55).toFixed(6);
+          setFrm({
+            title: frm.title,
+            description: frm.description,
+            category_id: frm.category_id,
             latitude: mocklat,
-            longitude: mocklon
-          }));
-          setMapPlacementCoords({lat: parseFloat(mocklat), lon: parseFloat(mocklon)});
-          triggerNotification('info', `Your physical location falls outside Metropolis borders. Seed mock coordinates within limits instead: (${mocklat}, ${mocklon})`);
+            longitude: mocklon,
+            files: frm.files
+          });
+          setPlace({ lat: parseFloat(mocklat), lon: parseFloat(mocklon) });
         }
       },
-      {enableHighAccuracy: true, timeout:5000}
+      function (err) {
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
     );
-  };
+  }
 
-
-
-  const handleMapMouseDown = (e) => {
-    if (e.button !==0) return;
-    setIsDraggingMap(true);
-    setDragStart({x: e.clientX - mapOffset.x, y: e.clientY - mapOffset.y });
-  };
-
-  const handleMapMouseMove = (e) => {
-    if (!isDraggingMap) return;
-    setMapOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
+  function handleMapMouseDown(e) {
+    if (e.button !== 0) return;
+    setDrags(true);
+    setStart({
+      x: e.clientX - offset.x,
+      y: e.clientY - offset.y
     });
-  };
+  }
 
-  const handleMapMouseUpOrLeave = () => {
-    setIsDraggingMap(false);
-  };
+  function handleMapMouseMove(e) {
+    if (drags === false) return;
+    setOffset({
+      x: e.clientX - start.x,
+      y: e.clientY - start.y
+    });
+  }
 
-  const handleMapZoom = (factor) => {
-    setMapScale(prev => Math.min(4, Math.max(0.8, prev+factor)));
-  };
+  function handleMapMouseUpOrLeave() {
+    setDrags(false);
+  }
 
-  const handleMapReset = () => {
-    setMapScale(1);
-    setMapOffset({x:0,y:0});
-  };
+  function handleMapZoom(factor) {
+    setScale(function (prev) {
+      let nextScale = prev + factor;
+      if (nextScale < 0.8) nextScale = 0.8;
+      if (nextScale > 4) nextScale = 4;
+      return nextScale;
+    });
+  }
 
-  const handleMapClick = (e) => {
-   
-    if (isDraggingMap) return;
+  function handleMapReset() {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+  }
 
-    const svg = mapSvgRef.current;
-    if (!svg) return;
+  function handleMapClick(e) {
+    if (drags === true) return;
 
-    
-    const rect = svg.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    let svg = svgref.current;
+    if (svg === null) return;
 
-    
-    const svgX = (clickX - rect.width / 2 - mapOffset.x) / mapScale + MAP_HEIGHT / 2;
-    const svgY = (clickY - rect.height / 2 - mapOffset.y) / mapScale + MAP_WIDTH / 2;
+    let rect = svg.getBoundingClientRect();
+    let clickX = e.clientX - rect.left;
+    let clickY = e.clientY - rect.top;
+
+    let svgX = (clickX - rect.width / 2 - offset.x) / scale + MAP_HEIGHT / 2;
+    let svgY = (clickY - rect.height / 2 - offset.y) / scale + MAP_WIDTH / 2;
 
     if (svgX >= 0 && svgX <= MAP_WIDTH && svgY >= 0 && svgY <= MAP_HEIGHT) {
-      const coord = deprojectCoords(svgX,svgY);
-      setForm(prev => ({
-        ...prev,
+      let coord = deprojectCoords(svgX, svgY);
+      setFrm({
+        title: frm.title,
+        description: frm.description,
+        category_id: frm.category_id,
         latitude: coord.lat.toString(),
-        longitude: coord.lon.toString()
-      }));
-
-      triggerNotification('info', `Target coordinates captured: Lat ${coord.lat}, lon ${coord.lon} Shift to Submit tab to regiser`);
+        longitude: coord.lon.toString(),
+        files: frm.files
+      });
     }
-  };
+  }
 
- 
-
-  const handleFileDrop = (e) => {
+  function handleFileDrop(e) {
     e.preventDefault();
-    setIsDragOver(false);
+    setOver(false);
 
-    const droppedFiles = Array.from(e.dataTransfer.files);
+    let droppedFiles = [];
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      droppedFiles.push(e.dataTransfer.files[i]);
+    }
     processUploadedFiles(droppedFiles);
-  };
+  }
 
-  const handleFileSelect = (e) => {
-    const selectedFiles = Array.from(e.target.files);
+  function handleFileSelect(e) {
+    let selectedFiles = [];
+    for (let i = 0; i < e.target.files.length; i++) {
+      selectedFiles.push(e.target.files[i]);
+    }
     processUploadedFiles(selectedFiles);
-  };
+  }
 
-  const processUploadedFiles = (fileList) => {
+  function processUploadedFiles(fileList) {
+    let validFiles = [];
+    let errorsList = [];
 
-    const validFiles = [];
-    const errors = [];
-
-    fileList.forEach(file => {
-      if (!file.type.startsWith ('image/')) {
-        errors.push(`File ${file.name} ignored. Only images are permitted`);
-        return;
+    for (let i = 0; i < fileList.length; i++) {
+      let file = fileList[i];
+      let hasImage = file.type && file.type.substring(0, 6) === "image/";
+      if (hasImage === false) {
+        errorsList.push("We only choose pictures");
+      } else {
+        if (file.size > 5 * 1024 * 1024) {
+          errorsList.push("This picture is too big");
+        } else {
+          validFiles.push(file);
+        }
       }
-      if (file.size > 5 * 1024 * 1024) {
-        errors.push(`File ${file.name} is too large. Max size allowed is 5 MB`);
-        return;
-      }
-      validFiles.push(file);
-    });
+    }
 
-    if (errors.length > 0) {
-      triggerNotification('error', errors.join(''));
+    if (errorsList.length > 0) {
+      let errorStr = "";
+      for (let i = 0; i < errorsList.length; i++) {
+        errorStr = errorStr + errorsList[i] + " ";
+      }
+      triggerNotification("error", errorStr);
     }
 
     if (validFiles.length > 0) {
-      setForm(prev => ({
-        ...prev,
-        files: [...prev.files, ...validFiles]
-      }));
-      triggerNotification('success', `Added ${validFiles.length} evidence images`);
-    }
-  };
-
-  const removeSelectedFile = (idx) => {
-    setForm(prev => ({
-      ...prev,
-      files: prev.files.filter((_, i)=> i !== idx)
-    }));
-  };
-  
-  const handleFilterChange = (key, val) => {
-    setFilters(prev => {
-      const copy = {...prev};
-      if (key === 'status') {
-        const idx = copy.status.indexOf(val);
-        if (idx > -1) {
-          copy.status = copy.status.filter(s=>s !== val);
-        } else {
-          copy.status = [...copy.status, val];
+      setFrm(function (prev) {
+        let newList = [];
+        for (let i = 0; i < prev.files.length; i++) {
+          newList.push(prev.files[i]);
         }
+        for (let i = 0; i < validFiles.length; i++) {
+          newList.push(validFiles[i]);
+        }
+        return {
+          title: prev.title,
+          description: prev.description,
+          category_id: prev.category_id,
+          latitude: prev.latitude,
+          longitude: prev.longitude,
+          files: newList
+        };
+      });
+      triggerNotification("success", "Added " + validFiles.length + " pictures");
+    }
+  }
+
+  function removeSelectedFile(idx) {
+    setFrm(function (prev) {
+      let newList = [];
+      for (let i = 0; i < prev.files.length; i++) {
+        if (i !== idx) newList.push(prev.files[i]);
+      }
+      return {
+        title: prev.title,
+        description: prev.description,
+        category_id: prev.category_id,
+        latitude: prev.latitude,
+        longitude: prev.longitude,
+        files: newList
+      };
+    });
+  }
+
+  function handleFilterChange(key, val) {
+    setFils(function (prev) {
+      let copy = {
+        search: prev.search,
+        category: prev.category,
+        status: prev.status,
+        priority: prev.priority,
+        agency: prev.agency
+      };
+      if (key === "status") {
+        let list = [];
+        let found = false;
+        for (let i = 0; i < prev.status.length; i++) {
+          if (prev.status[i] === val) {
+            found = true;
+          } else {
+            list.push(prev.status[i]);
+          }
+        }
+        if (found === false) {
+          list.push(val);
+        }
+        copy.status = list;
       } else {
-        copy [key] = val;
+        copy[key] = val;
       }
       return copy;
     });
-  };
+  }
 
-  const resetFilters = () => {
-    setFilters({
-      search: '',
-      category: '',
+  function resetFilters() {
+    setFils({
+      search: "",
+      category: "",
       status: [],
-      priority: '',
-      agency: '',
+      priority: "",
+      agency: ""
     });
-  };
+  }
 
-  const filteredReports = reports.filter(r => {
-    if (filters.search) {
-      const q = filters.search.toLowerCase().trim();
-      const matchText = (r.title+" "+r.description+ " " + r.ticket_number).toLowerCase();
-      if (!matchText.includes(q)) return false;
+  let filteredReports = [];
+  for (let i = 0; i < reps.length; i++) {
+    let r = reps[i];
+    let isOk = true;
+
+    if (fils.search !== "") {
+      let q = fils.search.toLowerCase().trim();
+      let matchText = (r.title + " " + r.description + " " + r.ticket_number).toLowerCase();
+      if (matchText.indexOf(q) === -1) {
+        isOk = false;
+      }
     }
 
-    if (filters.category && r.category_detail?.system_slug !== filters.category) {
-      return false;
+    if (fils.category !== "") {
+      if (r.category_detail) {
+        if (r.category_detail.system_slug !== fils.category) {
+          isOk = false;
+        }
+      } else {
+        isOk = false;
+      }
     }
 
-    if (filters.status.length > 0 && !filters.status.includes(r.status)) {
-      return false;
+    if (fils.status.length > 0) {
+      let statusFound = false;
+      for (let j = 0; j < fils.status.length; j++) {
+        if (fils.status[j] === r.status) {
+          statusFound = true;
+        }
+      }
+      if (statusFound === false) {
+        isOk = false;
+      }
     }
 
-    if (filters.priority && r.category_detail?.priority !== filters.priority) {
-      return false;
+    if (fils.priority !== "") {
+      if (r.category_detail) {
+        if (r.category_detail.priority !== fils.priority) {
+          isOk = false;
+        }
+      } else {
+        isOk = false;
+      }
     }
 
-    if (filters.agency  && r.category_detail?.assignment_group !== filters.agency) {
-      return false;
+    if (fils.agency !== "") {
+      if (r.category_detail) {
+        if (r.category_detail.assignment_group !== fils.agency) {
+          isOk = false;
+        }
+      } else {
+        isOk = false;
+      }
     }
 
-    return true;
-    });
-    
-    const getPriorityColor = (priority, override = false) => {
-      if (override || priority === 'High') return 'var(--priority-high)';
-      if (priority === 'Medium') return 'var(--priority-medium)';
-      return 'var(--priority-low)';
-    };
-    
+    if (isOk === true) {
+      filteredReports.push(r);
+    }
+  }
 
-    return (
-      <div className="app-container">
-      {/*notify barrr*/}
-      {notification && (
-        <div className={`global-toast-banner toast-${notification.type}`}>
-          <div className="toast-icon">
-            {notification.type === 'success' && '✓'}
-            {notification.type === 'error' && '⚠'}
-            {notification.type === 'info' && 'ℹ'}
+  function getPriorityColor(priority, override) {
+    if (override === true || priority === "High") {
+      return "var(--priority-high)";
+    }
+    if (priority === "Medium") {
+      return "var(--priority-medium)";
+    }
+    return "var(--priority-low)";
+  }
+
+  return (
+    <div className="app-cont">
+      {note && (
+        <div className={"tst-ban toast-" + note.type}>
+          <div className="tst-icon">
+            {note.type === "success" && "✓"}
+            {note.type === "error" && "⚠"}
+            {note.type === "info" && "ℹ"}
           </div>
-          <div className="toast-message">{notification.message}</div>
-          <button className="toast-close" onClick={() => setNotification(null)}>×</button>
+          <div className="tst-msg">{cleanText(note.message)}</div>
+          <button className="tst-cls" onClick={function () { setNote(null); }}>×</button>
         </div>
       )}
 
-      {/*sideebar*/}
-      <aside className="diagnostic-sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-logo">
+      <aside className="diag-side">
+        <div className="side-brnd">
+          <div className="brnd-logo">
             <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="brand-text">
-            <h2>METROPOLIS</h2>
-            <span>CIVIC GRID</span>
+          <div className="brnd-txt">
+            <h2>Metropolis</h2>
+            <span>Civic grid</span>
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="side-nav">
           <button
-          className={`nav-item ${activeTab==='dashboard_map'?'active':''}`}
-          onClick={()=>{setActiveTab('dashboard_map'); setSelectedReport(null);}}
+            className={"nav-itm " + (tab === "dashboard_map" ? "active" : "")}
+            onClick={function () { setTab("dashboard_map"); setSel(null); }}
           >
-
             <span className="nav-icon"></span>
-            <span className="nav-label">Coordinate Map</span>
+            <span className="nav-label">Map</span>
           </button>
           <button
-          className={`nav-item ${activeTab==='ticket_explorer' ? 'active' : ''}`}
-          onClick={()=> setActiveTab('ticket_explorer')}
+            className={"nav-itm " + (tab === "ticket_explorer" ? "active" : "")}
+            onClick={function () { setTab("ticket_explorer"); }}
           >
             <span className="nav-icon"></span>
-            <span className="nav-label">Ticket Explorer</span>
-            <span className="badge-count">{filteredReports.length}</span>
+            <span className="nav-label">Tickets</span>
+            <span className="bdg-cnt">{filteredReports.length}</span>
           </button>
           <button
-          className={`nav-item ${activeTab === 'submit_ticket' ? 'active': ''}`}
-          onClick={()=> setActiveTab('submit_ticket')}
+            className={"nav-itm " + (tab === "submit_ticket" ? "active" : "")}
+            onClick={function () { setTab("submit_ticket"); }}
           >
-
             <span className="nav-icon"></span>
-            <span className="nav-label">Submit Ticket</span>
-
-            
+            <span className="nav-label">Submit</span>
           </button>
           <button
-          className={`nav item ${activeTab==='analytics_insights'?'active': ''}`}
-          onClick={()=> setActiveTab('analytics_insights')}
+            className={"nav-itm " + (tab === "analytics_insights" ? "active" : "")}
+            onClick={function () { setTab("analytics_insights"); }}
           >
             <span className="nav-icon"></span>
-            <span className="nav-label">Grid Analytics</span>
+            <span className="nav-label">Analytics</span>
           </button>
         </nav>
-
-      
-        <div className="diagnostic-monitor">
-          <div className="monitor-header">
-            <h3>SYSTEM STATUS</h3>
-            <span className={`status-dot pulse-${connectionStatus}`}></span>
-          </div>
-
-          <div className="monitor-stats">
-            <div className="stat-row">
-              <span className="stat-label">Grid Latency</span>
-              <span className="stat-value">{latencyMs} ms</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">HIDER</span>
-              <span className="stat-value text-green">{isAnonymized ? "ACTIVE / SCRUBBED" : "DISABLED"}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Submission Left</span>
-              <span className="stat-value text-yellow">{rateLimit.remaining} / 6 per min</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Registry Reset</span>
-              <span className="stat-value">{rateLimit.reset} s</span>
-            </div>
-          </div>
-
-          <div className="signature-box">
-            <div className="sig-label">SHA-256 Citizen Identity</div>
-            <div className="sig-value">{clientSignature}</div>
-          </div>
-        </div>
       </aside>
 
-      {/* main majorr page */}
-      <main className="main-viewport">
-
-       
-        {activeTab === 'dashboard_map' && (
-          <div className="viewport-layout map-view-tab">
-            <div className="panel-header">
+      <main className="main-view">
+        {tab === "dashboard_map" && (
+          <div className="view-lay map-view-tab">
+            <div className="pnl-hdr">
               <div>
-                <h1>City Coordinate Grid</h1>
-                <p>Interactive State. Click Map To Grab And Submit Issue And Choose Required Issue</p>
+                <h1>City grid</h1>
+                <p>Click map to choose issue</p>
               </div>
-              <div className="map-toolbar">
-                <button className="control-btn" onClick={() => handleMapZoom(0.25)} title="Zoom In">+</button>
-                <button className="control-btn" onClick={() => handleMapZoom(-0.25)} title="Zoom Out">-</button>
-                <button className="control-btn" onClick={handleMapReset} title="Reset Scale">↺</button>
-                <span className="zoom-indicator">{Math.round(mapScale * 100)}%</span>
+              <div className="map-tbar">
+                <button className="ctrl-btn" onClick={function () { handleMapZoom(0.25); }} title="Zoom in">+</button>
+                <button className="ctrl-btn" onClick={function () { handleMapZoom(-0.25); }} title="Zoom out">-</button>
+                <button className="ctrl-btn" onClick={handleMapReset} title="Reset">↺</button>
+                <span className="zoom-ind">{Math.round(scale * 100)}%</span>
               </div>
             </div>
 
-            <div className="map-canvas-container">
-              
+            <div className="map-canv">
               <svg
-                ref={mapSvgRef}
-                className={`map-svg-grid ${isDraggingMap ? 'dragging' : ''}`}
-                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                ref={svgref}
+                className={"map-svg " + (drags ? "dragging" : "")}
+                viewBox={"0 0 " + MAP_WIDTH + " " + MAP_HEIGHT}
                 onMouseDown={handleMapMouseDown}
                 onMouseMove={handleMapMouseMove}
                 onMouseUp={handleMapMouseUpOrLeave}
                 onMouseLeave={handleMapMouseUpOrLeave}
                 onClick={handleMapClick}
               >
-                
-                <g transform={`translate(${MAP_WIDTH / 2 + mapOffset.x}, ${MAP_HEIGHT / 2 + mapOffset.y}) scale(${mapScale}) translate(${-MAP_WIDTH / 2}, ${-MAP_HEIGHT / 2})`}>
-
-                  
+                <g transform={"translate(" + (MAP_WIDTH / 2 + offset.x) + ", " + (MAP_HEIGHT / 2 + offset.y) + ") scale(" + scale + ") translate(" + (-MAP_WIDTH / 2) + ", " + (-MAP_HEIGHT / 2) + ")"}>
                   <defs>
                     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1" />
@@ -651,7 +733,6 @@ export default function App() {
                   </defs>
                   <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#grid)" />
 
-                 
                   <path
                     d="M -50,450 Q 200,380 400,280 T 850, 220"
                     fill="none"
@@ -659,138 +740,117 @@ export default function App() {
                     strokeWidth="48"
                     strokeLinecap="round"
                   />
-                  <text x="250" y="325" fill="rgba(6, 182, 212, 0.3)" fontSize="12" fontWeight="bold" transform="rotate(-15, 250, 325)">METROPOLIS RIVER</text>
+                  <text x="250" y="325" fill="rgba(6, 182, 212, 0.3)" fontSize="12" fontWeight="bold" transform="rotate(-15, 250, 325)">River</text>
 
-                
                   <rect x="350" y="60" width="160" height="110" rx="10" fill="rgba(34, 197, 94, 0.08)" stroke="rgba(34, 197, 94, 0.15)" strokeWidth="2" />
-                  <text x="430" y="115" fill="rgba(34, 197, 94, 0.3)" fontSize="10" textAnchor="middle" fontWeight="bold">CENTRAL PARK</text>
+                  <text x="430" y="115" fill="rgba(34, 197, 94, 0.3)" fontSize="10" textAnchor="middle" fontWeight="bold">Park</text>
 
-                
                   <line x1="100" y1="0" x2="100" y2="500" stroke="rgba(148, 163, 184, 0.06)" strokeWidth="8" />
                   <line x1="0" y1="200" x2="800" y2="200" stroke="rgba(148, 163, 184, 0.06)" strokeWidth="8" />
 
-                  
-                  {filteredReports.map((report) => {
-                    const { x, y } = projectCoords(report.latitude, report.longitude);
-                    const isHigh = report.category_detail?.priority === 'High' || report.automated_priority_override;
-                    const isMedium = report.category_detail?.priority === 'Medium';
-                    const color = getPriorityColor(report.category_detail?.priority, report.automated_priority_override);
-                    const isSelected = selectedReport && selectedReport.id === report.id;
+                  {filteredReports.map(function (report) {
+                    let cx = getX(report.longitude);
+                    let cy = getY(report.latitude);
+                    let priorityVal = report.category_detail ? report.category_detail.priority : "";
+                    let color = getPriorityColor(priorityVal, report.automated_priority_override);
+                    let isSelected = sel !== null && sel.id === report.id;
+
+                    let showHigh = priorityVal === "High" || report.automated_priority_override;
+                    let showMedium = priorityVal === "Medium";
+                    let size = isSelected ? "7" : "5.5";
 
                     return (
                       <g
                         key={report.id}
-                        className={`map-marker-group ${isSelected ? 'selected' : ''}`}
-                        onClick={(e) => {
+                        className={"map-mrkr " + (isSelected ? "selected" : "")}
+                        onClick={function (e) {
                           e.stopPropagation();
-                          setSelectedReport(report);
+                          setSel(report);
                         }}
                       >
-                       
-                        {isHigh && (
-                          <>
-                            <circle cx={x} cy={y} r="16" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-outer" />
-                            <circle cx={x} cy={y} r="10" fill="none" stroke={color} strokeWidth="2" className="marker-pulse-inner" />
-                          </>
-                        )}
+                        {showHigh ? <circle cx={cx} cy={cy} r="16" fill="none" stroke={color} strokeWidth="1.5" className="mrkr-out" /> : null}
+                        {showHigh ? <circle cx={cx} cy={cy} r="10" fill="none" stroke={color} strokeWidth="2" className="mrkr-inn" /> : null}
+                        {showMedium ? <circle cx={cx} cy={cy} r="11" fill="none" stroke={color} strokeWidth="1.5" className="mrkr-inn" /> : null}
 
-                        {isMedium && (
-                          <circle cx={x} cy={y} r="11" fill="none" stroke={color} strokeWidth="1.5" className="marker-pulse-inner" />
-                        )}
-
-                        
                         <circle
-                          cx={x}
-                          cy={y}
-                          r={isSelected ? "7" : "5.5"}
+                          cx={cx}
+                          cy={cy}
+                          r={size}
                           fill={color}
                           stroke="#0f172a"
                           strokeWidth="2"
-                          className="marker-core"
+                          className="mrkr-core"
                         />
-
-                     
-                        <text x={x} y={y - 12} fill="#94a3b8" fontSize="8" textAnchor="middle" className="marker-tag">
-                          {report.ticket_number}
+                        <text x={cx} y={cy - 12} fill="#94a3b8" fontSize="8" textAnchor="middle" className="mrkr-tag">
+                          {cleanTicket(report.ticket_number)}
                         </text>
                       </g>
-                    )
+                    );
                   })}
 
-                  
-                  {mapPlacementCoords && (() => {
-                    const projected = projectCoords(mapPlacementCoords.lat, mapPlacementCoords.lon);
-                    return (
-                      <g>
-                        <path
-                          d={`M ${projected.x} ${projected.y - 2}
-                            L ${projected.x -6} ${projected.y -16}
-                            A 6 6 0 1 1 ${projected.x+6} ${projected.y - 16} z`}
-                          fill="var(--accent-cyan)"
-                          stroke="#0f172a"
-                          strokeWidth="1.5"
-                          className="placement-pin-glow"
-                        />
-
-                        <circle
-                          cx={projected.x}
-                          cy={projected.y - 16}
-                          r="2.5"
-                          fill="#0f172a"
-                        />
-                      </g>
-                    );
-                  })()}
+                  {place && (
+                    <g>
+                      <path
+                        d={"M " + getX(place.lon) + " " + (getY(place.lat) - 2) + " L " + (getX(place.lon) - 6) + " " + (getY(place.lat) - 16) + " A 6 6 0 1 1 " + (getX(place.lon) + 6) + " " + (getY(place.lat) - 16) + " z"}
+                        fill="var(--accent-cyan)"
+                        stroke="#0f172a"
+                        strokeWidth="1.5"
+                        className="pin-glow"
+                      />
+                      <circle cx={getX(place.lon)} cy={getY(place.lat) - 16} r="2.5" fill="#0f172a" />
+                    </g>
+                  )}
                 </g>
               </svg>
 
-            
-              {selectedReport && (
-                <div className="map-side-drawer-overlay">
-                  <div className="drawer-header">
+              {sel && (
+                <div className="map-draw">
+                  <div className="draw-hdr">
                     <div>
-                      <span className="drawer-ticket-tag">{selectedReport.ticket_number}</span>
-                      <h2 className="drawer-title">{selectedReport.title}</h2>
+                      <span className="draw-tag">{cleanTicket(sel.ticket_number)}</span>
+                      <h2 className="draw-ttl">{cleanText(sel.title)}</h2>
                     </div>
-                    <button className="drawer-close-btn" onClick={() => setSelectedReport(null)}>×</button>
+                    <button className="draw-close" onClick={function () { setSel(null); }}>×</button>
                   </div>
 
-                  <div className="drawer-scroll-body">
-                  
-                    <div className="drawer-status-bar">
+                  <div className="draw-body">
+                    <div className="draw-stat">
                       <div
-                        className="status-badge"
-                        style={{ backgroundColor: `${getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override)}20`, color: getPriorityColor(selectedReport.category_detail?.priority, selectedReport.automated_priority_override) }}
+                        className="stat-bdg"
+                        style={{
+                          backgroundColor: getPriorityColor(sel.category_detail.priority, sel.automated_priority_override) + "20",
+                          color: getPriorityColor(sel.category_detail.priority, sel.automated_priority_override)
+                        }}
                       >
-                        {selectedReport.category_detail?.priority} Priority
+                        {cleanText(sel.category_detail.priority)}
                       </div>
-                      {selectedReport.automated_priority_override && (
-                        <span className="ai-override-pill">Ai Elevated</span>
+                      {sel.automated_priority_override && (
+                        <span className="ai-pill">Ai scan</span>
                       )}
-                      <span className="status-string">State: <strong>{selectedReport.status_display}</strong></span>
+                      <span className="stat-str">State {cleanText(sel.status_display)}</span>
                     </div>
 
-                    <div className="drawer-meta-grid">
+                    <div className="draw-grid">
                       <div className="meta-box">
-                        <span>Classification</span>
-                        <strong>{selectedReport.category_detail?.name}</strong>
+                        <span>Group</span>
+                        <strong>{cleanText(sel.category_detail.name)}</strong>
                       </div>
                       <div className="meta-box">
-                        <span>Assignment Team</span>
-                        <strong>{selectedReport.category_detail?.assignment_group}</strong>
+                        <span>Team</span>
+                        <strong>{cleanText(sel.category_detail.assignment_group)}</strong>
                       </div>
                       <div className="meta-box">
-                        <span>Grid Location</span>
-                        <strong>{selectedReport.latitude}, {selectedReport.longitude}</strong>
+                        <span>Location</span>
+                        <strong>{sel.latitude} And {sel.longitude}</strong>
                       </div>
                       <div className="meta-box">
-                        <span>Upvotes</span>
-                        <div className="drawer-upvote-counter">
-                          <strong>{selectedReport.upvote_count}</strong>
+                        <span>Upvote count</span>
+                        <div className="draw-upvt">
+                          <strong>{sel.upvote_count}</strong>
                           <button
-                            className="inline-upvote-trigger"
-                            onClick={() => handleUpvote(selectedReport.id)}
-                            disabled={['Resolved', 'Rejected'].includes(selectedReport.status)}
+                            className="upvt-trig"
+                            onClick={function () { handleUpvote(sel.id); }}
+                            disabled={sel.status === "Resolved" || sel.status === "Rejected"}
                           >
                             ▲ Upvote
                           </button>
@@ -798,100 +858,124 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="drawer-description-box">
-                      <h4>Citizen Summary Details</h4>
-                      <p>{selectedReport.description}</p>
+                    <div className="draw-desc">
+                      <h4>Citizen details</h4>
+                      <p>{cleanText(sel.description)}</p>
                     </div>
 
-                   
-                    {selectedReport.media_attachments?.length > 0 && (
-                      <div className="drawer-media-section">
-                        <h4>Captured Evidence Photos ({selectedReport.media_attachments.length})</h4>
-                        <div className="carousel-track">
-                          {selectedReport.media_attachments.map((img) => (
-                            <div key={img.id} className="carousel-slide-card">
-                              <img src={img.absolute_url || img.file_path} alt="Incident Evidence" />
-                              <span className="slide-meta"> {(img.file_size / 1024).toFixed(1)}KB</span>
-                            </div>
-                          ))}
+                    {sel.media_attachments && sel.media_attachments.length > 0 && (
+                      <div className="draw-med">
+                        <h4>Photos {sel.media_attachments.length}</h4>
+                        <div className="car-trck">
+                          {sel.media_attachments.map(function (img) {
+                            return (
+                              <div key={img.id} className="car-crd">
+                                <img src={img.absolute_url || img.file_path} alt="Evidence" />
+                                <span className="sld-meta">{(img.file_size / 1024).toFixed(1)} KB</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
 
-                    
-                    <div className="drawer-timeline-section">
-                      <h4>Document and Report Check</h4>
-                      <div className="timeline-tree">
-                        {selectedReport.history_logs?.map((log, idx) => (
-                          <div key={log.id || idx} className="timeline-node">
-                            <div className="timeline-node-dot"></div>
-                            <div className="timeline-node-content">
-                              <div className="timeline-node-header">
-                                <span className="node-transition">{log.previous_status_display} - {log.new_status_display}</span>
-                                <span className="node-date">{new Date(log.created_at).toLocaleString()}</span>
-                              </div>
-                              <p className="node-comment">"{log.comment}"</p>
-                              {log.administrative_notes && (
-                                <div className="node-admin-notes">
-                                  <span>Internal Report Point:</span> {log.administrative_notes}
+                    <div className="draw-line">
+                      <h4>Report logs</h4>
+                      <div className="line-tree">
+                        {sel.history_logs && sel.history_logs.map(function (log, idx) {
+                          let prevText = cleanText(log.previous_status_display);
+                          let newText = cleanText(log.new_status_display);
+                          return (
+                            <div key={log.id || idx} className="line-node">
+                              <div className="line-dot"></div>
+                              <div className="line-cont">
+                                <div className="line-hdr">
+                                  {prevText === newText ? (
+                                    <span className="node-tran">{newText}</span>
+                                  ) : (
+                                    <span className="node-tran">{prevText} to {newText}</span>
+                                  )}
+                                  <span className="node-date">{cleanText(new Date(log.created_at).toLocaleString())}</span>
                                 </div>
-                              )}
+                                <p className="node-cmt">{cleanText(log.comment)}</p>
+                                {log.administrative_notes && (
+                                  <div className="node-note">
+                                    <span>Report details</span> {cleanText(log.administrative_notes)}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
-                    
-                    <div className="drawer-admin-section">
-                      <h4>Administrative controls</h4>
-                      <form onSubmit={handleStatusTransition} className="admin-status-form">
-                        <div className="form-group-row">
-                          <div className="form-element">
-                            <label>Transition State</label>
+                    <div className="draw-adm">
+                      <h4>Admin zone</h4>
+                      <form onSubmit={handleStatusTransition} className="adm-form">
+                        <div className="frm-row">
+                          <div className="frm-elm">
+                            <label>Change status</label>
                             <select
-                              value={adminTransition.status}
-                              onChange={(e) => setAdminTransition(prev => ({ ...prev, status: e.target.value }))}
+                              value={trans.status}
+                              onChange={function (e) {
+                                setTrans({
+                                  status: e.target.value,
+                                  comment: trans.comment,
+                                  administrative_notes: trans.administrative_notes
+                                });
+                              }}
                             >
-                              <option value="">Shift Status</option>
+                              <option value="">Shift status</option>
                               <option value="Open">Open</option>
                               <option value="Investigating">Investigate</option>
-                              <option value="Scheduled">Schedule Work</option>
-                              <option value="In Progress">Start Work</option>
-                              <option value="Resolved">Mark Resolved</option>
-                              <option value="Rejected">Reject Ticket</option>
+                              <option value="Scheduled">Schedule work</option>
+                              <option value="In Progress">Start work</option>
+                              <option value="Resolved">Mark resolved</option>
+                              <option value="Rejected">Reject ticket</option>
                             </select>
                           </div>
                         </div>
 
-                        <div className="form-element">
-                          <label>Public Comment</label>
+                        <div className="frm-elm">
+                          <label>Comment for public</label>
                           <textarea
                             rows="2"
-                            placeholder="Add Progress details visible to citizens"
-                            value={adminTransition.comment}
-                            onChange={(e) => setAdminTransition(prev => ({ ...prev, comment: e.target.value }))}
+                            placeholder="Write comment here"
+                            value={trans.comment}
+                            onChange={function (e) {
+                              setTrans({
+                                status: trans.status,
+                                comment: e.target.value,
+                                administrative_notes: trans.administrative_notes
+                              });
+                            }}
                           />
                         </div>
-                        <div className="form-element">
-                          <label>Internal Administrative Notes</label>
+                        <div className="frm-elm">
+                          <label>Notes for system</label>
                           <input
                             type="text"
-                            placeholder="Secure database internal audit logs"
-                            value={adminTransition.administrative_notes}
-                            onChange={(e) => setAdminTransition(prev => ({ ...prev, administrative_notes: e.target.value }))}
+                            placeholder="Write notes here"
+                            value={trans.administrative_notes}
+                            onChange={function (e) {
+                              setTrans({
+                                status: trans.status,
+                                comment: trans.comment,
+                                administrative_notes: e.target.value
+                              });
+                            }}
                           />
                         </div>
-                        <button type="submit" className="admin-submit-btn">Commit State Transition</button>
+                        <button type="submit" className="adm-btn">Commit change</button>
 
-                        {adminMessage && (
-                          <div className={`admin-form-alert alert-${adminMessage.type}`}>
-                            {adminMessage.text}
+                        {msg && (
+                          <div className="adm-alrt">
+                            {cleanText(msg.text)}
                           </div>
                         )}
                       </form>
                     </div>
-
                   </div>
                 </div>
               )}
@@ -899,171 +983,176 @@ export default function App() {
           </div>
         )}
 
-        {/*checkk ticket*/}
-        {activeTab === 'ticket_explorer' && (
-          <div className="viewport-layout explorer-view-tab">
-            <div className="panel-header">
+        {tab === "ticket_explorer" && (
+          <div className="view-lay explorer-view-tab">
+            <div className="pnl-hdr">
               <div>
-                <h1>Municipal Ticket Explorer</h1>
-                <p>See and check real-time issues submitted across assignment groups. Use filters to narrow geographical areas</p>
+                <h1>Ticket list</h1>
+                <p>See all tickets here</p>
               </div>
             </div>
 
-            <div className="explorer-grid-layout">
-              {/*Left column*/}
-              <aside className="explorer-filters-panel">
-                <div className="filter-panel-header">
-                  <h3>SEARCH & FILTER</h3>
-                  <button className="reset-filter-btn" onClick={resetFilters}>Clear All</button>
+            <div className="exp-grid">
+              <aside className="exp-filt">
+                <div className="filt-hdr">
+                  <h3>Search and filter</h3>
+                  <button className="rst-btn" onClick={resetFilters}>Clear all</button>
                 </div>
 
-                <div className="filter-section">
-                  <label className="filter-label">Title/Description Search</label>
+                <div className="filt-sec">
+                  <label className="filt-lbl">Search text</label>
                   <input
                     type="text"
-                    placeholder="Enter keywords or ticket numbers..."
-                    className="filter-input-search"
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    placeholder="Write search text here"
+                    className="filt-srch"
+                    value={fils.search}
+                    onChange={function (e) { handleFilterChange("search", e.target.value); }}
                   />
                 </div>
 
-                <div className="filter-section">
-                  <label className="filter-label">Civic Classification Category</label>
+                <div className="filt-sec">
+                  <label className="filt-lbl">Choose category</label>
                   <select
-                    className="filter-select"
-                    value={filters.category}
-                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    className="filt-sel"
+                    value={fils.category}
+                    onChange={function (e) { handleFilterChange("category", e.target.value); }}
                   >
-
-                    <option value="">All Classification</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.system_slug}>{c.name}</option>
-                    ))}
+                    <option value="">All categories</option>
+                    {cats.map(function (c) {
+                      return (
+                        <option key={c.id} value={c.system_slug}>{cleanText(c.name)}</option>
+                      );
+                    })}
                   </select>
                 </div>
 
-                <div className="filter-section">
-                  <label className="filter-label">Responsible Agency</label>
+                <div className="filt-sec">
+                  <label className="filt-lbl">Choose team</label>
                   <select
-                    className="filter-select"
-                    value={filters.agency}
-                    onChange={(e) => handleFilterChange('agency', e.target.value)}
+                    className="filt-sel"
+                    value={fils.agency}
+                    onChange={function (e) { handleFilterChange("agency", e.target.value); }}
                   >
-
-                    <option value="">All Departments</option>
-                    <option value="Public Works">Public Works</option>
-                    <option value="Animal Control">Animal Control</option>
-                    <option value="Traffic Safety">Traffic Safety</option>
+                    <option value="">All teams</option>
+                    <option value="Public Works">Public works</option>
+                    <option value="Animal Control">Animal control</option>
+                    <option value="Traffic Safety">Traffic safety</option>
                     <option value="Sanitation">Sanitation</option>
                   </select>
                 </div>
 
-                <div className="filter-section">
-                  <label className="filter-label">Emergency Urgency Tier</label>
+                <div className="filt-sec">
+                  <label className="filt-lbl">Choose urgency</label>
                   <select
-                    className="filter-select"
-                    value={filters.priority}
-                    onChange={(e) => handleFilterChange('priority', e.target.value)}
+                    className="filt-sel"
+                    value={fils.priority}
+                    onChange={function (e) { handleFilterChange("priority", e.target.value); }}
                   >
-
-                    <option value="">All Urgencies</option>
-                    <option value="High">High Urgencies</option>
-                    <option value="Medium">Medium Urgencies</option>
-                    <option value="Low">Low Urgencies</option>
+                    <option value="">All urgency levels</option>
+                    <option value="High">High urgency</option>
+                    <option value="Medium">Medium urgency</option>
+                    <option value="Low">Low urgency</option>
                   </select>
                 </div>
 
-                <div className="filter-section">
-                  <label className="filter-label">Assigned Statuses</label>
-                  <div className="filter-checkbox-group">
-                    {['Open', 'Investigating', 'Scheduled', 'In Progress', 'Resolved', 'Rejected'].map((stat) => (
-                      <label key={stat} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={filters.status.includes(stat)}
-                          onChange={() => handleFilterChange('status', stat)}
-                        />
-                        <span>{stat}</span>
-                      </label>
-                    ))}
+                <div className="filt-sec">
+                  <label className="filt-lbl">Choose status</label>
+                  <div className="filt-grp">
+                    {["Open", "Investigating", "Scheduled", "In Progress", "Resolved", "Rejected"].map(function (stat) {
+                      let isChecked = fils.status.indexOf(stat) !== -1;
+                      return (
+                        <label key={stat} className="chk-itm">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={function () { handleFilterChange("status", stat); }}
+                          />
+                          <span>{cleanText(stat)}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </aside>
 
-       
-              <section className="explorer-results-dashboard">
-                <div className="results-metrics-bar">
-                  <span>Showing <strong>{filteredReports.length}</strong>matching tickets out of <strong>{reports.length}</strong></span>
+              <section className="exp-dash">
+                <div className="met-bar">
+                  <span>Showing <strong>{filteredReports.length}</strong> matching tickets from total <strong>{reps.length}</strong></span>
                 </div>
 
                 {filteredReports.length === 0 ? (
-                  <div className="results-empty-state">
-                    <span className="empty-icon"></span>
-                    <h3>No matching reports registered</h3>
-                    <p>Try modifying active text queries, clearing categories, or checking check boxes</p>
+                  <div className="empty-st">
+                    <span className="emp-icon"></span>
+                    <h3>No reports found</h3>
+                    <p>Change search filter or clear all</p>
                   </div>
                 ) : (
-                  <div className="explorer-cards-grid">
-                    {filteredReports.map((report) => {
-                      const color = getPriorityColor(report.category_detail?.priority, report.automated_priority_override);
+                  <div className="exp-cards">
+                    {filteredReports.map(function (report) {
+                      let priorityVal = report.category_detail ? report.category_detail.priority : "";
+                      let color = getPriorityColor(priorityVal, report.automated_priority_override);
+
                       return (
                         <div
                           key={report.id}
-                          className="explorer-card"
-                          onClick={() => {
-                            setSelectedReport(report);
-                            setActiveTab('dashboard_map');
+                          className="exp-card"
+                          onClick={function () {
+                            setSel(report);
+                            setTab("dashboard_map");
                           }}
                         >
-                          <div className="card-header">
-                            <span className="card-ticket-tag">{report.ticket_number}</span>
+                          <div className="crd-hdr">
+                            <span className="crd-tag">{cleanTicket(report.ticket_number)}</span>
                             <div
-                              className="card-priority-badge"
-                              style={{ backgroundColor: `${color}15`, color: color, borderColor: `${color}30` }}
+                              className="crd-bdg"
+                              style={{
+                                backgroundColor: color + "15",
+                                color: color,
+                                borderColor: color + "30"
+                              }}
                             >
-                              {report.category_detail?.priority}
+                              {cleanText(priorityVal)}
                             </div>
                           </div>
 
-                          <h3 className="card-title">{report.title}</h3>
-                          <p className="card-description-clip">{report.description}</p>
+                          <h3 className="crd-ttl">{cleanText(report.title)}</h3>
+                          <p className="crd-clip">{cleanText(report.description)}</p>
 
-                          <div className="card-attributes">
-                            <div className="attr-item">
-                              <span className="attr-label">Agency</span>
-                              <span className="attr-value">{report.category_detail?.assignment_group}</span>
+                          <div className="crd-attr">
+                            <div className="attr-itm">
+                              <span className="attr-lbl">Team</span>
+                              <span className="attr-val">{cleanText(report.category_detail.assignment_group)}</span>
                             </div>
-                            <div className="attr-item">
-                              <span className="attr-label">Status:</span>
-                              <span className="attr-value text-green">{report.status_display}</span>
+                            <div className="attr-itm">
+                              <span className="attr-lbl">Status</span>
+                              <span className="attr-val txt-grn">{cleanText(report.status_display)}</span>
                             </div>
                           </div>
 
-                          <div className="card-footer">
-                            <span className="card-timestamp">{new Date(report.created_at).toLocaleDateString()}</span>
+                          <div className="crd-ftr">
+                            <span className="crd-time">{cleanText(new Date(report.created_at).toLocaleDateString())}</span>
 
-                            <div className="card-actions">
-                              {report.media_attachments?.length > 0 && (
-                                <span className="media-indicator" title={`${report.media_attachments.length} evidence attachments`}>
+                            <div className="crd-actions">
+                              {report.media_attachments && report.media_attachments.length > 0 && (
+                                <span className="med-ind" title={report.media_attachments.length + " Evidence images"}>
                                   📷 {report.media_attachments.length}
                                 </span>
                               )}
 
                               <button
-                                className="card-upvote-btn"
-                                onClick={(e) => {
+                                className="crd-upvt"
+                                onClick={function (e) {
                                   e.stopPropagation();
                                   handleUpvote(report.id);
                                 }}
-                                disabled={['Resolved', 'Rejected'].includes(report.status)}
+                                disabled={report.status === "Resolved" || report.status === "Rejected"}
                               >
                                 ▲ {report.upvote_count}
                               </button>
                             </div>
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -1072,358 +1161,327 @@ export default function App() {
           </div>
         )}
 
-        
-        {activeTab==='submit_ticket' && (
-          <div className="viewport-layout form-view-tab">
-            <div className="panel-header">
+        {tab === "submit_ticket" && (
+          <div className="view-lay form-view-tab">
+            <div className="pnl-hdr">
               <div>
-                <h1>Log Civic Incident</h1>
-                <p>Register structural or municipal hazards. The AI Urgency classifier scans issues to adjust department required immediatly</p>
+                <h1>New report</h1>
+                <p>Write report here</p>
               </div>
             </div>
 
-            <div className="form-layout-box">
-              <form onSubmit={handleFormSubmit} className="incident-submit-form">
-
-                <div className="form-group-grid">
-
-                
-                  <div className="form-element col-span-2">
-                    <label className="element-label">Summary Title</label>
+            <div className="frm-box">
+              <form onSubmit={handleFormSubmit} className="inc-form">
+                <div className="frm-grid">
+                  <div className="frm-elm span-2">
+                    <label className="elm-lbl">Title</label>
                     <input
-                    type="text"
-                    placeholder="e.g Gas odor emerging near storm drain gate"
-                    value={form.title}
-                    onChange={(e) => setForm(prev => ({...prev, title: e.target.value}))}
-                    className={formErrors.title ? 'input-error': ''}
+                      type="text"
+                      placeholder="Write incident title here"
+                      value={frm.title}
+                      onChange={function (e) {
+                        setFrm({
+                          title: e.target.value,
+                          description: frm.description,
+                          category_id: frm.category_id,
+                          latitude: frm.latitude,
+                          longitude: frm.longitude,
+                          files: frm.files
+                        });
+                      }}
+                      className={errs.title ? "input-error" : ""}
                     />
-                    {formErrors.title && <span className="error-message-tag">{formErrors.title}</span>}
-                    <span className="input-hint">Summarize the issue clearly (5-150 characters). Avoid Bad Words And Repetative Words</span>
+                    {errs.title && <span className="err-tag">{cleanText(errs.title)}</span>}
+                    <span className="in-hint">Write five to one hundred characters</span>
                   </div>
 
-                  
-                  <div className="form-element col-span-2">
-                    <label className="element-label">Civic Classification Category</label>
+                  <div className="frm-elm span-2">
+                    <label className="elm-lbl">Choose category</label>
                     <select
-                    value={form.category_id}
-                    onChange={(e)=>setForm(prev=>({...prev, category_id: e.target.value}))}
-                    className={formErrors.category_id ? 'input-error':''}
+                      value={frm.category_id}
+                      onChange={function (e) {
+                        setFrm({
+                          title: frm.title,
+                          description: frm.description,
+                          category_id: e.target.value,
+                          latitude: frm.latitude,
+                          longitude: frm.longitude,
+                          files: frm.files
+                        });
+                      }}
+                      className={errs.category_id ? "input-error" : ""}
                     >
-                      <option value="">Pick Category</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} (Assigned: {c.assignment_group})</option>
-                      ))}
+                      <option value="">Pick category</option>
+                      {cats.map(function (c) {
+                        return (
+                          <option key={c.id} value={c.id}>{cleanText(c.name)} Team {cleanText(c.assignment_group)}</option>
+                        );
+                      })}
                     </select>
-                    {formErrors.category_id && <span className="error-message-tag">{formErrors.category_id}</span>}
-                    <span className="input-hint">Links incident straight to specific issues</span>
+                    {errs.category_id && <span className="err-tag">{cleanText(errs.category_id)}</span>}
+                    <span className="in-hint">Pick category from list</span>
                   </div>
 
-                 
-                  <div className="form-element">
-                    <label className="element-label">Geospatial Latitude</label>
-                    <div className="coordinate-input-container">
-                      <input
+                  <div className="frm-elm">
+                    <label className="elm-lbl">Latitude</label>
+                    <input
                       type="number"
                       step="0.000001"
-                      placeholder={`e.g, 40.7589`}
-                      value={form.latitude}
-                      onChange={(e)=> setForm(prev => ({...prev, latitude: e.target.value}))}
-                      className={formErrors.latitude ? 'input-error' : ''}
-                      />
-                    </div>
-                    {formErrors.latitude && <span className="error-message-tag">{formErrors.latitude}</span>}
-                  </div>
-
-                  <div className="form-element">
-                    <label className="element-label">Geospatial Longitude</label>
-                    <div className="coordinate-input-containter">
-                      <input
-                      type="number"
-                      step="0.0000001"
-                      placeholder={`e.g. -73.9851`}
-                      value={form.longitude}
-                      onChange={(e)=>setForm(prev => ({...prev, longitude: e.target.value}))}
-                      className={formErrors.longitude ? 'input-error': ''}
-                      />
-                    </div>
-                    {formErrors.longitude && <span className="error-message-tag">{formErrors.longitude}</span>}
-                  </div>
-
-                 
-                  <div className="coordinate-actions-ribbon col-span-2">
-                    <button
-                    type="button"
-                    className="coordinate-utility-btn"
-                    onClick={triggerBrowserGeolocation}
-                    >
-                      Access Browser Geolocation GPS
-                    </button>
-                    <button
-                    type="button"
-                    className="coordinate-utility-btn"
-                    onClick={()=> {
-                      setActiveTab('dashboard_map');
-                      triggerNotification('info', 'Click on the map grid to capture coordinates');
-                    }}
-                    >
-                      Select Coordinates from Map
-                    </button>
-                  </div>
-
-                 
-                  <div className="form-elements col-span-2">
-                    <label className="element-label">Detailed Incident Description</label>
-                    <textarea
-                    rows="5"
-                    placeholder="Detail physical properties, size, street numbers, vechial tags, hazards durations, and historical context..."
-                    value={form.description}
-                    onChange={(e)=>setForm(prev=> ({...prev, description: e.target.value}))}
-                    className={formErrors.description ? 'input-error':''}
+                      placeholder="Write latitude"
+                      value={frm.latitude}
+                      onChange={function (e) {
+                        setFrm({
+                          title: frm.title,
+                          description: frm.description,
+                          category_id: frm.category_id,
+                          latitude: e.target.value,
+                          longitude: frm.longitude,
+                          files: frm.files
+                        });
+                      }}
+                      className={errs.latitude ? "input-error" : ""}
                     />
-                    <div className="textarea-counter-bar">
-                      {formErrors.description && <span className="error-message-tag">{formErrors.description}</span>}
-                      <span className="character-counter">
-                        Remaining: {Math.max(0, 1000 - form.description.length)} / Min required: 15
+                    {errs.latitude && <span className="err-tag">{cleanText(errs.latitude)}</span>}
+                    <span className="in-hint">Write latitude from 40.700000 to 40.850000</span>
+                  </div>
+
+                  <div className="frm-elm">
+                    <label className="elm-lbl">Longitude</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      placeholder="Write longitude"
+                      value={frm.longitude}
+                      onChange={function (e) {
+                        setFrm({
+                          title: frm.title,
+                          description: frm.description,
+                          category_id: frm.category_id,
+                          latitude: frm.latitude,
+                          longitude: e.target.value,
+                          files: frm.files
+                        });
+                      }}
+                      className={errs.longitude ? "input-error" : ""}
+                    />
+                    {errs.longitude && <span className="err-tag">{cleanText(errs.longitude)}</span>}
+                    <span className="in-hint">Write longitude from -74.050000 to -73.850000</span>
+                  </div>
+
+                  <div className="coord-rib span-2">
+                    <button
+                      type="button"
+                      className="coord-btn"
+                      onClick={triggerBrowserGeolocation}
+                    >
+                      Get gps location
+                    </button>
+                    <button
+                      type="button"
+                      className="coord-btn"
+                      onClick={function () {
+                        setTab("dashboard_map");
+                        triggerNotification("info", "Click on the map grid to capture coordinates");
+                      }}
+                    >
+                      Get location from map
+                    </button>
+                  </div>
+
+                  <div className="frm-elm span-2">
+                    <label className="elm-lbl">Description</label>
+                    <textarea
+                      rows="5"
+                      placeholder="Write details of incident here"
+                      value={frm.description}
+                      onChange={function (e) {
+                        setFrm({
+                          title: frm.title,
+                          description: e.target.value,
+                          category_id: frm.category_id,
+                          latitude: frm.latitude,
+                          longitude: frm.longitude,
+                          files: frm.files
+                        });
+                      }}
+                      className={errs.description ? "input-error" : ""}
+                    />
+                    <div className="txt-bar">
+                      {errs.description && <span className="err-tag">{cleanText(errs.description)}</span>}
+                      <span className="char-cnt">
+                        Remaining {Math.max(0, 1000 - frm.description.length)} from one thousand minimum fifteen
                       </span>
                     </div>
                   </div>
 
-               
-                  <div className="form-element col-span-2">
-                    <label className="element-label">Attach Photo Evidence</label>
+                  <div className="frm-elm span-2">
+                    <label className="elm-lbl">Photos</label>
 
                     <div
-                    className={`drag-upload-zone ${isDragOver ? 'drag-over': ''}`}
-                    onDragOver={()=> setIsDragOver(false)}
-                    onDrop={handleFileDrop}
-                    onClick={()=> fileInputRef.current?.click()}
+                      className={"drag-zone " + (over ? "drag-over" : "")}
+                      onDragOver={function () { setOver(false); }}
+                      onDrop={handleFileDrop}
+                      onClick={function () { fileref.current.click(); }}
                     >
                       <input
-                      type="file"
-                      ref={fileInputRef}
-                      multiple
-                      accept="image/"
-                      style={{display: 'none'}}
-                      onChange={handleFileSelect}
+                        type="file"
+                        ref={fileref}
+                        multiple
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={handleFileSelect}
                       />
                       <span className="upload-icon"></span>
-                      <h4>Drag and drop photo evidence files here</h4>
-                      <p>Or click to browse from local computer. Image files only. Max 5MB per upload</p>
+                      <h4>Drag photos here</h4>
+                      <p>Click to choose photos</p>
                     </div>
 
-                  
-                    {form.files.length > 0 && (
-                      <div className="uploaded-files-carousel">
-                        {form.files.map((file, idx) => {
-                          const src = URL.createObjectURL(file);
+                    {frm.files.length > 0 && (
+                      <div className="up-car">
+                        {frm.files.map(function (file, idx) {
+                          let src = URL.createObjectURL(file);
                           return (
-                            <div key={idx} className="evidence-preview-card">
-                              <img src={src} alt="Upload Preview" />
-                              <div className="preview-meta">
-                                <span className="preview-filename">{file.name}</span>
-                                <span className="preview-size">{(file.size / 1024).toFixed(1)} KB </span>
-                                </div>
-                                <button
+                            <div key={idx} className="ev-card">
+                              <img src={src} alt="Upload preview" />
+                              <div className="prev-meta">
+                                <span className="prv-name">{cleanText(file.name)}</span>
+                                <span className="prv-size">{(file.size / 1024).toFixed(1)} KB</span>
+                              </div>
+                              <button
                                 type="button"
-                                className="remove-preview-button"
-                                onClick={(e) => {
+                                className="rm-btn"
+                                onClick={function (e) {
                                   e.stopPropagation();
                                   removeSelectedFile(idx);
                                 }}
-                                >
-
-                                </button>
-                                </div>
+                              >
+                                ×
+                              </button>
+                            </div>
                           );
                         })}
-                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="form-submit-row">
-                  <button
-                  type="submit"
-                  className="form-submit-trigger"
-                  disabled={isSubmitting}
-                  >
 
-                    {isSubmitting ? "Registering Incident...":"Register Civic Report"}
+                <div className="frm-sub">
+                  <button
+                    type="submit"
+                    className="frm-sub-trigger"
+                    disabled={subs}
+                  >
+                    {subs ? "Submitting report now" : "Submit report"}
                   </button>
                 </div>
               </form>
             </div>
           </div>
-
         )}
-       
-        {activeTab === 'analytics_insights' && (
-          <div className="viewport-layout analytics-view-tab">
-            <div className="panel-header">
+
+        {tab === "analytics_insights" && (
+          <div className="view-lay analytics-view-tab">
+            <div className="pnl-hdr">
               <div>
-                <h1>Municipal Grid Analytics</h1>
-                <p>Real Time Issue show through Graphs</p>
+                <h1>Grid numbers</h1>
+                <p>Graphs of issues</p>
               </div>
             </div>
 
-            <div className="analytics-dashboard-grid">
-
-             
-              <div className="count-metric-card">
-                <h3>Total Reports Logged</h3>
-                <span className="metric-number">{reports.length}</span>
-                <span className="metric-subtext">Required reports inside active archives</span>
+            <div className="an-grid">
+              <div className="cnt-card">
+                <h3>Total reports</h3>
+                <span className="met-num">{reps.length}</span>
+                <span className="met-sub">Reports in system</span>
               </div>
 
-              <div className="count-metric-card">
-                <h3>Active Incidents</h3>
-                <span className="metric-number text-yellow">
-                  {reports.filter(r=> ['Open', 'Investigating', 'Scheduled', 'In Progress'].includes(r.status)).length}
+              <div className="cnt-card">
+                <h3>Active issues</h3>
+                <span className="met-num txt-ylw">
+                  {reps.filter(function (r) {
+                    let activeList = ["Open", "Investigating", "Scheduled", "In Progress"];
+                    let found = false;
+                    for (let i = 0; i < activeList.length; i++) {
+                      if (activeList[i] === r.status) {
+                        found = true;
+                      }
+                    }
+                    return found;
+                  }).length}
                 </span>
-                <span className="metric-subtext">Issues awaiting final municipal checks</span>
+                <span className="met-sub">Reports not solved yet</span>
               </div>
 
-              <div className="count-metric-card">
-                <h3>Helper Rate</h3>
-                <span className="metric-number text=green">
-                {reports.length > 0
-                  ?`${Math.round((reports.filter(r=>r.status === 'Resolved').length / reports.length) * 100)}%`
-                  : '0%'
-                }
+              <div className="cnt-card">
+                <h3>Solved rate</h3>
+                <span className="met-num txt-grn">
+                  {reps.length > 0
+                    ? Math.round((reps.filter(function (r) { return r.status === "Resolved"; }).length / reps.length) * 100) + "%"
+                    : "0%"
+                  }
                 </span>
-                <span className="matric-subtext">Closed tickets / overall queue volume</span>
+                <span className="met-sub">Percent of solved issues</span>
               </div>
 
-              <div className="count-metric-card">
-                <h3>AI Urgency Evaluations</h3>
-                <span className="metric-number text-cyan">
-                  {reports.filter(r=>r.automated_priority_override).length}
+              <div className="cnt-card">
+                <h3>Ai scan count</h3>
+                <span className="met-num txt-cyn">
+                  {reps.filter(function (r) { return r.automated_priority_override === true; }).length}
                 </span>
-                <span className="metric-subtext">Tickets priority  scanning</span>
+                <span className="met-sub">Reports scanned by Ai</span>
               </div>
 
-            
-              <div className="analytics-plot-card col-span-2">
-                <h3>Incident check by category</h3>
-                <div className="plot-canvas">
-                  <svg viewBox="0 0 600 240" className="plot-svg">
-                    
-                    {categories.map((cat, idx) => {
-                      const count = reports.filter(r=> r.category_detail?.id === cat.id).length;
-                      const maxVal = Math.max(...categories.map(c=> reports.filter(r=>r.category_detail?.id===c.id).length),1);
-                      const barHeight = (count / maxVal) * 140;
-                      const x = 50 + idx * 110;
-                      const y = 180 - barHeight;
-
-                      return (
-                        <g key={cat.id}>
-                         
-                          <text x={x+35} y={y-8} fill="#94a3b8" fontSize="10" textAnchor="middle" fontWeight="bold">
-                            {count}
-                          </text>
-                          
-                          <rect
-                          x={x}
-                          y={y}
-                          width="70"
-                          height={barHeight}
-                          rx="4"
-                          fill="var(--accent-cyan)"
-                          opacity="0.75"
-                          className="analytics-bar-glow"
-                          />
-                       
-                          <text x={x+35} y="200" fill="#94a4b8" fontSize="8" textAnchor="middle" transform={`rotate(0, ${x+35}, 200)`}>
-                            {cat.name.split(' ')[0]}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  
-                    <line x1="30" y1="180" x2="580" y2="180" stroke="rgba(148,163,184,0.2)" strokeWidth="2"/>
-                  </svg>
-
+              <div className="an-plot span-2">
+                <h3>Issues by group</h3>
+                <div className="plt-list">
+                  {cats.map(function (cat) {
+                    let count = reps.filter(function (r) {
+                      if (r.category_detail) {
+                        return r.category_detail.id === cat.id;
+                      }
+                      return false;
+                    }).length;
+                    return (
+                      <div key={cat.id} className="plt-row">
+                        <span className="plt-lbl">{cleanText(cat.name)}</span>
+                        <span className="plt-val">{count}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-            
-              <div className="analytics-plot-card">
-                <h3>Incident Priority Spread</h3>
-                <div className="plot-canvas-center">
-                  <svg viewBox="0 0 200 200" width="160" height="160" className="plot-svg">
-                  
-                    { (() => {
-                      const high = reports.filter(r => r.category_detail?.priority === 'High' || r.automated_priority_override).length;
-                      const med = reports.filter(r => r.category_detail?.priority === 'Medium' && !r.automated_priority_override).length;
-                      const low = reports.filter(r => r.category_detail?.priority === 'Low' && !r.automated_priority_override).length;
-                      const total = high + med + low || 1;
-
-                      const highPct = high / total;
-                      const medPct = med / total;
-
-                    
-                      const r= 50;
-                      const circ = 2*Math.PI * r;
-
-                      const dashHigh = circ * highPct
-                      const dashMed = circ * medPct;
-                      const dashLow = circ * (low / total);
-
-                      return (
-                        <g transform="rotate(-90 100 100)">
-                        
-                          <circle
-                            cx="100" cy="100" r={r}
-                            fill="none"
-                            stroke="var(--priority-high)"
-                            strokeWidth="24"
-                            strokeDasharray={`${dashHigh} ${circ - dashHigh}`}
-                            strokeDashoffset="0"
-                          />
-                        
-                          <circle
-                            cx="100" cy="100" r={r}
-                            fill="none"
-                            stroke="var(--priority-medium)"
-                            strokeWidth="24"
-                            strokeDasharray={`${dashMed} ${circ - dashMed}`}
-                            strokeDashoffset={-dashHigh}
-                          />
-                        
-                          <circle
-                            cx="100" cy="100" r={r}
-                            fill="none"
-                            stroke="var(--priority-low)"
-                            strokeWidth="24"
-                            strokeDasharray={`${dashLow} ${circ - dashLow}`}
-                            strokeDashoffset={-(dashHigh + dashMed)}
-                          />
-                        </g>
-                      );
-                    })()}
-                  </svg>
-
-                  <div className="pie-legend">
-                    <div className="legend-item">
-                      <span className="legend-dot bg-red"></span>
-                      <span>High ({reports.filter(r => r.category_detail?.priority === 'High' || r.automated_priority_override).length})</span>
-                    </div>
-                    <div className="legend-item">
-                      <span className="legend-dot bg-yellow"></span>
-                      <span>Medium ({reports.filter(r => r.category_detail?.priority === 'Medium' && !r.automated_priority_override).length})</span>
-                    </div>
-                    <div className="legend-item">
-                      <span className="legend-dot bg-cyan"></span>
-                      <span>Low ({reports.filter(r => r.category_detail?.priority === 'Low' && !r.automated_priority_override).length})</span>
-                    </div>
-                  </div>
-
+              <div className="an-plot">
+                <h3>Issues by urgency</h3>
+                <div className="plt-list">
+                  {["High", "Medium", "Low"].map(function (urg) {
+                    let count = reps.filter(function (r) {
+                      let ok = false;
+                      if (r.category_detail) {
+                        if (r.category_detail.priority === urg) {
+                          ok = true;
+                        }
+                      }
+                      if (urg === "High" && r.automated_priority_override === true) {
+                        ok = true;
+                      }
+                      if (urg !== "High" && r.automated_priority_override === true) {
+                        ok = false;
+                      }
+                      return ok;
+                    }).length;
+                    return (
+                      <div key={urg} className="plt-row">
+                        <span className="plt-lbl">{cleanText(urg)} urgency</span>
+                        <span className="plt-val">{count}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
             </div>
           </div>
         )}
-
       </main>
     </div>
   );

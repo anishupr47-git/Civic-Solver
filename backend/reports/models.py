@@ -4,24 +4,19 @@ import datetime
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-# Create your models here.
-
 class Category(models.Model):
-    
-    """
-    Creating models for civic issues and mapping and priorities
-    """
+    """Category model"""
     PRIORITY_CHOICES = [
-        ('Low', 'Low Priority'),
-        ('Medium', 'Medium Priority'),
-        ('High', 'High Priority'),
+        ('Low', 'Small worry'),
+        ('Medium', 'Medium worry'),
+        ('High', 'Big worry'),
     ]
 
     ASSIGNMENT_GROUP_CHOICES = [
-        ('Public Works', 'Public Works Department'),
-        ('Animal Control', 'Animal Control'),
-        ('Traffic Safety', 'Traffic Safety & Signaling'),
-        ('Sanitation', 'Sanitation & Waste Management'),
+        ('Public Works', 'Road fixers'),
+        ('Animal Control', 'Animal helpers'),
+        ('Traffic Safety', 'Street lights'),
+        ('Sanitation', 'Trash cleaners'),
     ]
 
     name = models.CharField(max_length=100, verbose_name="Category Name")
@@ -40,17 +35,15 @@ class Category(models.Model):
     
 
 class IssueReport(models.Model):
-    """
-    A specific reported civic isuue containing all
-    """
+    """Report model"""
 
     STATUS_CHOICES = [
-        ('Open', 'Open / Received'),
-        ('Investigating', 'Under Investigation'),
-        ('Scheduled', 'Work Scheduled'),
-        ('In Progress', 'Work in Progress'),
-        ('Resolved', 'Resolved & Closed'),
-        ('Rejected', 'Rejected / Duplicate'),
+        ('Open', 'We got it'),
+        ('Investigating', 'Looking at it'),
+        ('Scheduled', 'Planned to fix'),
+        ('In Progress', 'Fixing it now'),
+        ('Resolved', 'All fixed and done'),
+        ('Rejected', 'Not needed'),
     ]
 
     ticket_number= models.CharField(max_length=20,unique=True,editable=False,verbose_name="Ticket Tracking Identifier")
@@ -76,22 +69,22 @@ class IssueReport(models.Model):
         return f"{self.ticket_number} - {self.title} [{self.get_status_display()}]"
     
     def clean(self):
-        """Perform basic validation check"""
+        """Check coordinates"""
         if not (-90.0 <= self.latitude <= 90.0):
             raise ValidationError({'latitude':'Latitude must sit withing [-90.0, 90.0] limits '})
         if not (-180.0 <= self.longitude <=180.0):
             raise ValidationError({'longitude':'Longitude must sit within [-180.0, 180.0] limits'})
         
     def save(self, *args, **kwargs):
-        """Custom excecution pipeline generating ticket counter and committing data rows"""
+        """Save report"""
         self.clean()
         if not self.ticket_number:
             now= datetime.datetime.now()
             year= now.year
-            #Determine the sequentional index for reports registered within this calendar year
+            #Get ticket index for this year
             yearly_count = IssueReport.objects.filter(created_at__year=year).count()+1
             ticket_candidate = f"CIV-{year}-{yearly_count:05d}"
-            #Check loop to resolve seed collisions
+            #Check collisions
             while IssueReport.objects.filter(ticket_number=ticket_candidate).exists():
                 yearly_count +=1
                 ticket_candidate =f"CIV-{year}-{yearly_count:05d}"
@@ -99,9 +92,7 @@ class IssueReport(models.Model):
         super().save(*args, **kwargs)
 
 class StatusUpdate(models.Model):
-    """
-    Historical  logs tracking ticket transitions with all features
-    """
+    """Status log model"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4,editable=False)
     report = models.ForeignKey(IssueReport,on_delete=models.CASCADE,related_name="history_logs",verbose_name="Linked Issue Ticket")
@@ -121,14 +112,14 @@ class StatusUpdate(models.Model):
     
 
 def get_attachment_upload_path(instance, filename):
-    """Generates clean directory for citizen media file uploads"""
+    """Get upload path"""
     ext = filename.split('.')[-1]
     name = uuid.uuid4().hex
     return f"reports/{instance.report.ticket_number}/{name}.{ext}"
 
 
 class MediaAttachment(models.Model):
-    """Image uploading field"""
+    """Media model"""
 
     id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     report = models.ForeignKey(IssueReport,on_delete=models.CASCADE,related_name="media_attachments",verbose_name="Associated Ticket")
@@ -144,5 +135,3 @@ class MediaAttachment(models.Model):
 
     def __str__(self):
         return f"Attachment {self.id} (Size: {self.file_size}B) linked to {self.report.ticket_number}"
-    
-    
